@@ -1,0 +1,46 @@
+# Extensionless files
+*
+!/**/
+!*.*
+
+# Haskell bits
+dist
+dist-*
+cabal-dev
+*.o
+*.hi
+*.chi
+*.chs.h
+*.dyn_o
+*.dyn_hi
+.hpc
+.hsenv
+.cabal-sandbox/
+cabal.sandbox.config
+*.prof
+*.aux
+*.hp
+*.eventlog
+.stack-work/
+cabal.project.local
+stack.yaml.lock
+.HTF/
+
+# Haskell Stack cabal files: they're automatically generated.
+*.cabal
+
+# IPython / IHaskell notebook checkpoints
+.ipynb*
+
+# Sublime text
+*.sublime-workspace
+
+# Logs
+*.log
+
+# Profile exports
+*.ps
+
+# KDE
+.directory
+
