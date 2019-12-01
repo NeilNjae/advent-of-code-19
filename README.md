@@ -60,7 +60,7 @@ stack exec -- advent01 +RTS -K0 -RTS
 
 Run interactively with
 ```
-stack ghci advent-of-code:exe:advent01
+stack ghci advent01
 ```
 
 To profile, use 
