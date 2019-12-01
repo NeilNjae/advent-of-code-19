@@ -28,7 +28,7 @@ fuelRequired :: Int -> Int
 fuelRequired m = (m `div` 3) - 2
 
 fuelForFuel :: Int -> Int
-fuelForFuel m = sum $ takeWhile (> 0) $ drop 1 $ iterate fuelRequired m
+fuelForFuel = sum . takeWhile (> 0) . drop 1 . iterate fuelRequired
 
 
 -- Parse the input file
