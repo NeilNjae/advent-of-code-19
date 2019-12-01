@@ -21,7 +21,7 @@ part1 :: [Int] -> Int
 part1 = sum . map fuelRequired
 
 part2 :: [Int] -> Int
-part2= sum . map fuelForFuel
+part2 = sum . map fuelForFuel
 
 
 fuelRequired :: Int -> Int

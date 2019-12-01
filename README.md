@@ -39,6 +39,8 @@ Modify the `stack.yaml` file as needed, such as adding the `ghc-options` stanza.
 
 Each day lives in a separate directory within the `src` directory. It will also need it's own stanza in `advent-of-code.cabal`.
 
+Stack configuration taken from https://github.com/mstksg/advent-of-code-2018
+
 Compile with
 ```
 stack build
