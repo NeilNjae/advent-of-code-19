@@ -1,6 +1,3 @@
-{-# LANGUAGE NegativeLiterals #-}
-{-# LANGUAGE OverloadedStrings #-}
-
 import Data.Text (Text)
 import qualified Data.Text.IO as TIO
 
@@ -11,8 +8,6 @@ import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 import qualified Control.Applicative as CA
 
-import Data.IntSet (IntSet)
-import qualified Data.IntSet as S
 
 main :: IO ()
 main = do 
@@ -23,16 +18,18 @@ main = do
 
 
 part1 :: [Int] -> Int
-part1 = sum 
+part1 = sum . map fuelRequired
 
 part2 :: [Int] -> Int
-part2 = snd . head . dropWhile unRepeated . scanl merge (S.empty, 0) . cycle 
+part2= sum . map fuelForFuel
 
-merge :: (IntSet, Int) -> Int -> (IntSet, Int)
-merge (frequencies, frequency) change = (S.insert frequency frequencies, frequency + change)
 
-unRepeated :: (IntSet, Int) -> Bool
-unRepeated (frequencies, frequency) = frequency `S.notMember` frequencies
+fuelRequired :: Int -> Int
+fuelRequired m = (m `div` 3) - 2
+
+fuelForFuel :: Int -> Int
+fuelForFuel m = sum $ takeWhile (> 0) $ drop 1 $ iterate fuelRequired m
+
 
 -- Parse the input file
 type Parser = Parsec Void Text
@@ -44,12 +41,12 @@ sc = L.space (skipSome spaceChar) CA.empty CA.empty
 
 lexeme  = L.lexeme sc
 integer = lexeme L.decimal
-signedInteger = L.signed sc integer
+-- signedInteger = L.signed sc integer
 
-changesP = many signedInteger
+moduleP = many integer
 
 successfulParse :: Text -> [Int]
 successfulParse input = 
-        case parse changesP "input" input of
+        case parse moduleP "input" input of
                 Left  _err -> [] -- TIO.putStr $ T.pack $ parseErrorPretty err
                 Right changes -> changes     

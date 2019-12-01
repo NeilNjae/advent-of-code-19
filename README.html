@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title>Advent of Code 2018</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="modest.css" type="text/css" />
+</head>
+<body>
+<div id="header">
+<h1 class="title">Advent of Code 2018</h1>
+</div>
+<p>Code to solve the <a href="http://adventofcode.com/2019/">Advent of Code</a> puzzles. This year, I'm using the puzzles to develop my skills in <a href="https://wiki.haskell.org/Haskell">Haskell</a>.</p>
+<p><a href="http://learnyouahaskell.com/chapters">Learn you a Haskell</a>, <a href="https://www.haskell.org/tutorial/index.html">Introduction to Haskell 98</a>, and <a href="https://hackage.haskell.org/">Hackage</a> are good resources.</p>
+<p>The <a href="https://docs.haskellstack.org/en/stable/README/">Stack documentation</a> and <a href="http://howistart.org/posts/haskell/1/">How I Start: Haskell</a> are good sources of using the tools.</p>
+<h1 id="toolchain">Toolchain</h1>
+<p>I'm using the basic Haskell Platform installation, together with <code>stack</code> to manage the packages and dependencies (install with</p>
+<pre><code>$ sudo aptitude install haskell-platform haskell-stack</code></pre>
+<p>), then updgrade with</p>
+<pre><code> stack upgrade --binary-only</code></pre>
+<p>as the version in the Ubuntu repos is too old to work with current Haskell Stack package sets. ##</p>
+<h2 id="creating-the-repository-and-project">Creating the repository and project</h2>
+<p>Create the repository as normal: create the project in Gitolite, clone it, and insert the <code>.gitignore</code> and <code>README.md</code> files.</p>
+<p>There's just one package, with the code in sub-directories of the <code>src</code> directory. Each day will generate one (or more) entries in the <code>adventofcode17.cabal</code> file.</p>
+<p>Create the basic <code>stack</code> project. This will create a new directory. Note that this new directory name can't have a hyphen-delimited word that's just digits, so the project will have to be <code>advent-of-code</code></p>
+<pre><code>stack new advent-of-code --bare simple</code></pre>
+<p>Modify the <code>stack.yaml</code> file as needed, such as adding the <code>ghc-options</code> stanza.</p>
+<h2 id="creating-subsequent-days">Creating subsequent days</h2>
+<p>Each day lives in a separate directory within the <code>src</code> directory. It will also need it's own stanza in <code>advent-of-code.cabal</code>.</p>
+<p>Compile with</p>
+<pre><code>stack build</code></pre>
+<p>or</p>
+<pre><code>stack build advent01</code></pre>
+<p>Run with</p>
+<pre><code>stack exec advent01</code></pre>
+<p>If you want to pass in additional RTS parameters, do it like this:</p>
+<pre><code>stack exec -- advent01 +RTS -K0 -RTS</code></pre>
+<p>Run interactively with</p>
+<pre><code>stack ghci advent-of-code:exe:advent01</code></pre>
+<p>To profile, use</p>
+<pre><code>stack build --executable-profiling --library-profiling --ghc-options=&quot;-fprof-auto -rtsopts&quot;</code></pre>
+<p>then run with</p>
+<pre><code>stack exec -- advent01 +RTS -p -hy</code></pre>
+<p>Generate the profile graph with</p>
+<pre><code>stack exec hp2ps advent01.hp</code></pre>
+<h1 id="packages">Packages</h1>
+<p>Stack is using the <a href="https://www.stackage.org/lts-14.16">14.16-lts resolver</a> for packages, so make sure you read the <a href="https://www.stackage.org/lts-14.16/docs">correct documentation for the packages included in it</a>.</p>
+<p>When you use a new package, use</p>
+<pre><code>stack solver</code></pre>
+<p>to see how the <code>stack.yaml</code> file needs to change, and</p>
+<pre><code>stack solver --update-yaml</code></pre>
+<p>to implement the changes.</p>
+<h1 id="ihaskell">IHaskell</h1>
+<p>Install following the <a href="https://github.com/gibiansky/IHaskell">IHaskell instructions</a>.</p>
+<p>Run it with</p>
+<pre><code>stack exec jupyter -- notebook</code></pre>
+<h1 id="readme">Readme</h1>
+<p>Build this readme file wth</p>
+<pre><code>pandoc -s README.md &gt; README.html</code></pre>
+<p>(Using the <a href="https://github.com/markdowncss/modest">Modest style</a>.)</p>
+</body>
+</html>
