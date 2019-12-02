@@ -20,12 +20,11 @@ $ sudo aptitude install haskell-platform haskell-stack
  stack upgrade --binary-only
 ```
 as the version in the Ubuntu repos is too old to work with current Haskell Stack package sets.
-## 
 
 ## Creating the repository and project
 Create the repository as normal: create the project in Gitolite, clone it, and insert the `.gitignore` and `README.md` files.
 
-There's just one package, with the code in sub-directories of the `src` directory. Each day will generate one (or more) entries in the `adventofcode17.cabal` file.
+There's one package per day, with the code for each package in sub-directories of the root directory. 
 
 Create the basic `stack` project. This will create a new directory. Note that this new directory name can't have a hyphen-delimited word that's just digits, so the project will have to be `advent-of-code`
 
@@ -37,9 +36,7 @@ Modify the `stack.yaml` file as needed, such as adding the `ghc-options` stanza.
 
 ## Creating subsequent days
 
-Each day lives in a separate directory within the `src` directory. It will also need it's own stanza in `advent-of-code.cabal`.
-
-Stack configuration taken from https://github.com/mstksg/advent-of-code-2018
+Each day lives in a separate directory, with its own `package.yaml` file and code in the `src` directory. (I based this configuration from [mstksg's setup](https://github.com/mstksg/advent-of-code-2018).)
 
 Compile with
 ```
@@ -92,16 +89,6 @@ to see how the `stack.yaml` file needs to change, and
 stack solver --update-yaml
 ```
 to implement the changes.
-
-# IHaskell
-
-Install following the [IHaskell instructions](https://github.com/gibiansky/IHaskell).
-
-Run it with
-
-```
-stack exec jupyter -- notebook
-```
 
 # Readme
 

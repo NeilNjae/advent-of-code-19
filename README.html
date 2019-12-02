@@ -20,15 +20,15 @@
 <pre><code>$ sudo aptitude install haskell-platform haskell-stack</code></pre>
 <p>), then updgrade with</p>
 <pre><code> stack upgrade --binary-only</code></pre>
-<p>as the version in the Ubuntu repos is too old to work with current Haskell Stack package sets. ##</p>
+<p>as the version in the Ubuntu repos is too old to work with current Haskell Stack package sets.</p>
 <h2 id="creating-the-repository-and-project">Creating the repository and project</h2>
 <p>Create the repository as normal: create the project in Gitolite, clone it, and insert the <code>.gitignore</code> and <code>README.md</code> files.</p>
-<p>There's just one package, with the code in sub-directories of the <code>src</code> directory. Each day will generate one (or more) entries in the <code>adventofcode17.cabal</code> file.</p>
+<p>There's one package per day, with the code for each package in sub-directories of the root directory.</p>
 <p>Create the basic <code>stack</code> project. This will create a new directory. Note that this new directory name can't have a hyphen-delimited word that's just digits, so the project will have to be <code>advent-of-code</code></p>
 <pre><code>stack new advent-of-code --bare simple</code></pre>
 <p>Modify the <code>stack.yaml</code> file as needed, such as adding the <code>ghc-options</code> stanza.</p>
 <h2 id="creating-subsequent-days">Creating subsequent days</h2>
-<p>Each day lives in a separate directory within the <code>src</code> directory. It will also need it's own stanza in <code>advent-of-code.cabal</code>.</p>
+<p>Each day lives in a separate directory, with its own <code>package.yaml</code> file and code in the <code>src</code> directory. (I based this configuration from <a href="https://github.com/mstksg/advent-of-code-2018">mstksg's setup</a>.)</p>
 <p>Compile with</p>
 <pre><code>stack build</code></pre>
 <p>or</p>
@@ -52,10 +52,6 @@
 <p>to see how the <code>stack.yaml</code> file needs to change, and</p>
 <pre><code>stack solver --update-yaml</code></pre>
 <p>to implement the changes.</p>
-<h1 id="ihaskell">IHaskell</h1>
-<p>Install following the <a href="https://github.com/gibiansky/IHaskell">IHaskell instructions</a>.</p>
-<p>Run it with</p>
-<pre><code>stack exec jupyter -- notebook</code></pre>
 <h1 id="readme">Readme</h1>
 <p>Build this readme file wth</p>
 <pre><code>pandoc -s README.md &gt; README.html</code></pre>
