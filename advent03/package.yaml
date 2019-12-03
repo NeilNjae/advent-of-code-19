@@ -59,3 +59,12 @@ executables:
     - megaparsec
     - containers
     - linear
+  advent03part1:
+    main: advent03part1.hs
+    source-dirs: src
+    dependencies:
+    - base >= 2 && < 6
+    - text
+    - megaparsec
+    - containers
+    - linear

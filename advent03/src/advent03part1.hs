@@ -10,8 +10,6 @@ import qualified Control.Applicative as CA
 
 import Data.List (foldl')
 import qualified Data.Set as S
-import qualified Data.Map as M
-import Data.Map ((!))
 
 import Linear (V2(..), (^+^), (^-^), (*^), (*^))
 
@@ -21,11 +19,8 @@ type Location = V2 Int -- x, y
 
 type Visited = S.Set Location
 
-type TrackedVisited = M.Map Location Int
-
-data Path = Path { _visited :: TrackedVisited
+data Path = Path { _visited :: Visited
                  , _tip :: Location
-                 , _currentLength :: Int
                  } 
                deriving (Show, Eq)
 
@@ -38,53 +33,38 @@ main :: IO ()
 main = do 
         text <- TIO.readFile "data/advent03.txt"
         let segmentss = successfulParse text
-        let paths = travelAllPaths segmentss
+        -- print segmentss
         -- print $ travelPath $ head segmentss
-        print $ part1 paths
-        print $ part2 paths
+        print $ part1 segmentss
+        -- print $ part2 machine
 
-part1 :: [Path] -> Int
-part1 paths = closest $ crossovers paths
-
-part2 :: [Path] -> Int
-part2 paths = shortestPaths paths $ crossovers paths
-
+part1 :: [[Segment]] -> Int
+part1 segmentss = closest $ crossovers $ travelAllPaths segmentss
 
 closest :: Visited -> Int
 closest points = S.findMin $ S.map manhattan points
 
-
-shortestPaths :: [Path] -> Visited -> Int
-shortestPaths paths crossings = minimum $ S.map crossingPathLengths crossings
-    where crossingPathLengths crossing = sum $ map (\p -> (_visited p)!crossing) paths
-
-
 crossovers :: [Path] -> Visited
 crossovers travelledPaths = 
       foldl' S.intersection
-             (M.keysSet $ _visited $ head travelledPaths)
-             (map (M.keysSet . _visited) $ drop 1 travelledPaths)
+             (_visited $ head travelledPaths)
+             (map _visited $ drop 1 travelledPaths)
 
 travelAllPaths :: [[Segment]] -> [Path]
 travelAllPaths = map travelPath
 
 travelPath :: [Segment] -> Path
 travelPath segments = foldl' travelSegment path0 segments
-    where   path0 = Path { _visited = M.empty, _tip = V2 0 0, _currentLength = 0 }
+    where   path0 = Path { _visited = S.empty, _tip = V2 0 0 }
 
 travelSegment :: Path -> Segment -> Path
-travelSegment path segment = path { _tip = tip', _visited = visited', _currentLength = len'}
+travelSegment path segment = path { _tip = tip', _visited = visited' }
     where   delta = facing $ _direction segment
             distance = _steps segment
             start = _tip path
-            len = _currentLength path
-            len' = len + distance
             visited = _visited path
-            visited' = foldl' insertStep visited $ take distance $ drop 1 $ zip [len, (len + 1) ..] $ iterate (^+^ delta) start
+            visited' = foldl' (flip S.insert) visited $ take distance $ drop 1 $ iterate (^+^ delta) start
             tip' = start ^+^ distance *^ delta
-            insertStep visits (dist, loc) = if loc `M.member` visits
-                                            then visits
-                                            else M.insert loc dist visits
 
 facing :: Direction -> Location
 facing East = V2 1 0
