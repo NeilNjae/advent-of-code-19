@@ -9,7 +9,6 @@ import qualified Text.Megaparsec.Char.Lexer as L
 import qualified Control.Applicative as CA
 
 import Data.List (foldl')
-import qualified Data.Set as S
 import qualified Data.Map as M
 import Data.Map ((!))
 
@@ -19,11 +18,9 @@ data Direction = East | South | West | North deriving (Show, Eq)
 
 type Location = V2 Int -- x, y
 
-type Visited = S.Set Location
+type Visited = M.Map Location Int
 
-type TrackedVisited = M.Map Location Int
-
-data Path = Path { _visited :: TrackedVisited
+data Path = Path { _visited :: Visited
                  , _tip :: Location
                  , _currentLength :: Int
                  } 
@@ -47,23 +44,21 @@ part1 :: [Path] -> Int
 part1 paths = closest $ crossovers paths
 
 part2 :: [Path] -> Int
-part2 paths = shortestPaths paths $ crossovers paths
+part2 paths = shortestPaths $ crossovers paths
 
 
 closest :: Visited -> Int
-closest points = S.findMin $ S.map manhattan points
+closest points = snd $ M.findMin $ M.mapWithKey (\k _ -> manhattan k) points
 
-
-shortestPaths :: [Path] -> Visited -> Int
-shortestPaths paths crossings = minimum $ S.map crossingPathLengths crossings
-    where crossingPathLengths crossing = sum $ map (\p -> (_visited p)!crossing) paths
+shortestPaths :: Visited -> Int
+shortestPaths crossings = minimum $ M.elems  crossings
 
 
 crossovers :: [Path] -> Visited
 crossovers travelledPaths = 
-      foldl' S.intersection
-             (M.keysSet $ _visited $ head travelledPaths)
-             (map (M.keysSet . _visited) $ drop 1 travelledPaths)
+      foldl' (M.intersectionWith (+))
+             (_visited $ head travelledPaths)
+             (map _visited $ drop 1 travelledPaths)
 
 travelAllPaths :: [[Segment]] -> [Path]
 travelAllPaths = map travelPath
