@@ -86,7 +86,7 @@ integer = lexeme L.decimal
 symb = L.symbol sc
 comma = symb ","
 
-wiresP = some pathP
+wiresP = many pathP
 pathP = segmentP `sepBy1` comma
 
 segmentP = segmentify <$> directionP <*> integer
