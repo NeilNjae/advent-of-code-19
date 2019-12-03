@@ -61,6 +61,11 @@ Run interactively with
 ```
 stack ghci advent01
 ```
+or 
+```
+stack ghci advent01:exe:advent01
+```
+if the first form is ambiguous. 
 
 To profile, use 
 ```

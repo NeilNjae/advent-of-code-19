@@ -39,6 +39,9 @@
 <pre><code>stack exec -- advent01 +RTS -K0 -RTS</code></pre>
 <p>Run interactively with</p>
 <pre><code>stack ghci advent01</code></pre>
+<p>or</p>
+<pre><code>stack ghci advent01:exe:advent01</code></pre>
+<p>if the first form is ambiguous.</p>
 <p>To profile, use</p>
 <pre><code>stack build --executable-profiling --library-profiling --ghc-options=&quot;-fprof-auto -rtsopts&quot;</code></pre>
 <p>then run with</p>
