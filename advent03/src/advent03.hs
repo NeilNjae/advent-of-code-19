@@ -8,7 +8,7 @@ import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 import qualified Control.Applicative as CA
 
-import Data.List (foldl')
+import Data.List (foldl', foldl1')
 import qualified Data.Map as M
 import Data.Map ((!))
 
@@ -56,9 +56,7 @@ shortestPaths crossings = minimum $ M.elems  crossings
 
 crossovers :: [Path] -> Visited
 crossovers travelledPaths = 
-      foldl' (M.intersectionWith (+))
-             (_visited $ head travelledPaths)
-             (map _visited $ drop 1 travelledPaths)
+      foldl1' (M.intersectionWith (+)) $ map _visited travelledPaths
 
 travelAllPaths :: [[Segment]] -> [Path]
 travelAllPaths = map travelPath

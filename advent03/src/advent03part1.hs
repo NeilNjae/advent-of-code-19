@@ -8,7 +8,7 @@ import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 import qualified Control.Applicative as CA
 
-import Data.List (foldl')
+import Data.List (foldl', foldl1')
 import qualified Data.Set as S
 
 import Linear (V2(..), (^+^), (^-^), (*^), (*^))
@@ -46,9 +46,7 @@ closest points = S.findMin $ S.map manhattan points
 
 crossovers :: [Path] -> Visited
 crossovers travelledPaths = 
-      foldl' S.intersection
-             (_visited $ head travelledPaths)
-             (map _visited $ drop 1 travelledPaths)
+      foldl1' S.intersection $ map _visited travelledPaths
 
 travelAllPaths :: [[Segment]] -> [Path]
 travelAllPaths = map travelPath
