@@ -2,6 +2,7 @@
 main :: IO ()
 main = do 
         print part1
+        print part1a
         print part2 
 
 lowerLimit = 134792
@@ -9,6 +10,10 @@ upperLimit = 675810
 
 
 part1 = length $ filter inRange $ filter adjacentSame candidates
+part1a = length $ filter (>= lowerLimit) 
+                $ filter (<= upperLimit) 
+                $ map numify 
+                $ filter adjacentSame candidates
 part2 = length $ filter inRange $ filter isolatedAdjacentSame candidates
 
 inRange digits = n >= lowerLimit && n <= upperLimit
