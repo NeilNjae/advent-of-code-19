@@ -9,7 +9,7 @@ upperLimit = 675810
 
 
 part1 = length $ filter inRange $ filter adjacentSame candidates
-part2 = length $ filter isolatedAdjacentSame $ filter inRange $ filter adjacentSame candidates
+part2 = length $ filter inRange $ filter isolatedAdjacentSame candidates
 
 inRange digits = n >= lowerLimit && n <= upperLimit
     where n = numify digits
