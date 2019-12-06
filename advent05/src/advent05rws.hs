@@ -14,6 +14,8 @@ import Control.Monad (unless)
 import Control.Monad.State.Strict
 import Control.Monad.Reader
 import Control.Monad.Writer
+import Control.Monad.RWS.Strict
+
 
 import qualified Data.IntMap.Strict as M
 import Data.IntMap.Strict ((!))
@@ -27,7 +29,7 @@ data Machine = Machine { _memory :: Memory
                        } 
                deriving (Show, Eq)
 
-type ProgrammedMachine = WriterT [Int] (ReaderT ([Int]) (State Machine)) ()
+type ProgrammedMachine = RWS [Int] [Int] Machine ()
 
 data ParameterMode = Position | Immediate deriving (Ord, Eq, Show)
 
@@ -39,17 +41,10 @@ main = do
         print $ findMachineOutput [1] mem
         print $ findMachineOutput [5] mem
 
-
+findMachineOutput :: [Int] -> [Int] -> Int
 findMachineOutput inputs program = last output
-    where   finalStack = 
-                runState (
-                    runReaderT (
-                        runWriterT runAll
-                               ) 
-                        inputs
-                         ) 
-                         (makeMachine program)
-            ((_retval, output), _machine) = finalStack
+    where (_machine, output) = execRWS runAll inputs (makeMachine program)
+
 
 makeMachine :: [Int] -> Machine
 makeMachine memory = Machine    {_ip = 0, _inputIndex = 0

@@ -59,3 +59,13 @@ executables:
     - megaparsec
     - containers
     - mtl
+
+  advent05rws:
+    main: advent05rws.hs
+    source-dirs: src
+    dependencies:
+    - base >= 2 && < 6
+    - text
+    - megaparsec
+    - containers
+    - mtl
