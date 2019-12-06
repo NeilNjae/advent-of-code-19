@@ -36,17 +36,11 @@ main :: IO ()
 main = do 
         text <- TIO.readFile "data/advent05.txt"
         let mem = successfulParse text
-        -- let machine = makeMachine mem
         print $ findMachineOutput [1] mem
         print $ findMachineOutput [5] mem
-        -- print $ part2 machine
 
 
--- part1 machine = (_memory $ execState runAll machine1202)!0
---     where machine1202 = machine { _memory = M.insert 1 12 $ M.insert 2 2 $ _memory machine }
-
-
-findMachineOutput inputs program = output -- last output
+findMachineOutput inputs program = last output
     where   finalStack = 
                 runState (
                     runReaderT (
@@ -57,31 +51,10 @@ findMachineOutput inputs program = output -- last output
                          (makeMachine program)
             ((_retval, output), _machine) = finalStack
 
-
--- part1 = nounVerbResult 12 2
-
--- part2Target = 19690720
-
--- part2 machine = noun * 100 + verb
---     where (noun, verb) = head $ [(n, v) | n <- [0..99], v <- [0..99],
---                                           nounVerbResult n v machine == part2Target ]
-
-
 makeMachine :: [Int] -> Machine
 makeMachine memory = Machine    {_ip = 0, _inputIndex = 0
                                 , _memory = M.fromList $ zip [0..] memory
                                 }
-
--- nounVerbResult :: Int -> Int -> Machine -> Int
--- nounVerbResult noun verb machine = machineOutput nvMachine
---     where nvMachine0 = machineNounVerb machine noun verb
---           nvMachine = execState runAll nvMachine0
-
--- machineNounVerb :: Machine -> Int -> Int -> Machine
--- machineNounVerb machine noun verb = machine { _memory = M.insert 1 noun $ M.insert 2 verb $ _memory machine }
-
--- machineOutput :: Machine -> Int
--- machineOutput machine = (_memory machine)!0
 
 
 runAll :: ProgrammedMachine
