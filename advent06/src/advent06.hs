@@ -9,15 +9,15 @@ import qualified Text.Megaparsec.Char.Lexer as L
 import qualified Control.Applicative as CA
 
 import Data.List (foldl')
--- import qualified Data.Set as S
+import qualified Data.Set as S
+import Data.Set ((\\))
 import qualified Data.Map.Strict as M
-import Data.Map.Strict ((!), (\\))
+import Data.Map.Strict ((!))
 
 -- from satellite to primary
 type Orbits = M.Map String String
 
--- transfer steps to each primary
-type TransferDistances = M.Map String Int
+type Transfers = S.Set String
 
 
 main :: IO ()
@@ -25,23 +25,20 @@ main = do
         text <- TIO.readFile "data/advent06.txt"
         let directOrbits = successfulParse text
         let orbits = buildOrbits directOrbits
-        print $ part1 orbits directOrbits
+        print $ part1 orbits 
         print $ part2 orbits
 
-part1 :: Orbits -> [(String, String)] -> Int
-part1 orbits directOrbits = sum $ map (orbitCount orbits) satellites
-    where satellites = map snd directOrbits
+part1 :: Orbits -> Int
+part1 orbits = sum $ map (orbitCount orbits) $ M.keys orbits
 
 part2 :: Orbits -> Int
 part2 orbits = youDist + sanDist
-    where youTrans = transferDistance orbits M.empty (orbits!"YOU") 0
-          sanTrans = transferDistance orbits M.empty (orbits!"SAN") 0
+    where youTrans = transferSteps orbits S.empty (orbits!"YOU")
+          sanTrans = transferSteps orbits S.empty (orbits!"SAN")
           onlyYou = youTrans \\ sanTrans
           onlySan = sanTrans \\ youTrans
-          -- youDist = 1 + (maximum $ M.elems onlyYou)
-          -- sanDist = 1 + (maximum $ M.elems onlySan)
-          youDist = M.size onlyYou
-          sanDist = M.size onlySan
+          youDist = S.size onlyYou
+          sanDist = S.size onlySan  
 
 
 buildOrbits :: [(String, String)] -> Orbits
@@ -55,12 +52,12 @@ orbitCount orbits here
     | here `M.member` orbits = 1 + (orbitCount orbits (orbits!here))
     | otherwise = 0
 
-transferDistance :: Orbits -> TransferDistances -> String -> Int -> TransferDistances
-transferDistance orbits transfers here dist
-    | here `M.member` orbits = transferDistance orbits transfers' there (dist + 1)
+transferSteps :: Orbits -> Transfers -> String -> Transfers
+transferSteps orbits transfers here
+    | here `M.member` orbits = transferSteps orbits transfers' there
     | otherwise = transfers'
     where there = orbits!here
-          transfers' = M.insert here dist transfers
+          transfers' = S.insert here transfers
 
 
 -- Parse the input file
