@@ -120,7 +120,7 @@ emTrace e = intercalate " ; " terms
 
 
 finished :: Pipeline -> Bool
-finished pipeline = M.null $ runnableMachines pipeline
+finished = M.null . runnableMachines
 
 runnableMachines :: Pipeline -> Pipeline
 runnableMachines = M.filter (\e -> _executionState e == Runnable)
