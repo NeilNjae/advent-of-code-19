@@ -10,7 +10,7 @@ import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 import qualified Control.Applicative as CA
 
-import Control.Monad (unless)
+-- import Control.Monad (unless)
 import Control.Monad.State.Strict
 import Control.Monad.Reader
 import Control.Monad.Writer
@@ -20,7 +20,7 @@ import Control.Monad.RWS.Strict
 import qualified Data.Map.Strict as M
 import Data.Map.Strict ((!))
 import Data.List
-import Data.Function (on)
+-- import Data.Function (on)
 
 type Memory = M.Map Integer Integer
 
@@ -143,6 +143,7 @@ perform 9 ip modes rb mem = (mem, ip + 2, rb + a)
 perform _ ip _ rb mem = (mem, ip, rb)
 
 
+getMemoryValue :: Integer -> ParameterMode -> Integer -> Memory -> Integer
 getMemoryValue loc Position rb mem = getMemoryValue loc' Immediate rb mem
     where loc' = M.findWithDefault 0 loc mem
 getMemoryValue loc Immediate _ mem = M.findWithDefault 0 loc mem
@@ -151,10 +152,11 @@ getMemoryValue loc Relative rb mem = getMemoryValue loc' Immediate 0 mem
 
 -- indirect insert
 iInsert :: Integer -> ParameterMode -> Integer -> Integer -> Memory -> Memory
-iInsert loc Position _rb value mem = M.insert iloc value mem
-    where iloc = M.findWithDefault 0 loc mem
-iInsert loc Relative rb value mem = M.insert iloc value mem
-    where iloc = rb + M.findWithDefault 0 loc mem
+iInsert loc Position _rb value mem = M.insert loc' value mem
+    where loc' = M.findWithDefault 0 loc mem
+iInsert loc Immediate _rb value mem = M.insert loc value mem
+iInsert loc Relative rb value mem = M.insert loc' value mem
+    where loc' = rb + M.findWithDefault 0 loc mem
 
 parameterModes :: Integer -> [ParameterMode]
 parameterModes modeCode = unfoldr generateMode modeCode
@@ -186,4 +188,3 @@ successfulParse input =
         case parse memoryP "input" input of
                 Left  _err -> [] -- TIO.putStr $ T.pack $ parseErrorPretty err
                 Right memory -> memory
-                
