@@ -90,7 +90,7 @@ runStep =
        modify (\m -> m {_ip = ip', _memory = mem'', _rb = rb'})
 
 fetchInput :: Integer -> [ParameterMode] -> ProgrammedMachine ()
--- fetchInput opcode | trace ("Input with opcode " ++ show opcode) False = undefined
+-- fetchInput opcode _modes | trace ("Input with opcode " ++ show opcode) False = undefined
 fetchInput 3 modes =
     do mem <- gets _memory
        ip <- gets _ip
@@ -113,7 +113,7 @@ putOutput _ _ = return ()
 
 
 perform :: Integer -> Integer -> [ParameterMode] -> Integer -> Memory -> (Memory, Integer, Integer)
--- perform instr ip modes rb mem | trace ("Perform ip " ++ show ip ++ " opcode " ++ show instr ++ " modes " ++ (show (take 3 modes)) ++ " args " ++ (intercalate ", " (map show [(mem!(ip+1)), (mem!(ip+2)), (mem!(ip+3))]))) False = undefined
+-- perform instr ip modes rb mem | trace ("Perform ip " ++ show ip ++ " opcode " ++ show instr ++ " modes " ++ (show (take 3 modes)) ++ " rb " ++ (show rb) ++ " args " ++ (intercalate ", " (map show [(mem!(ip+1)), (mem!(ip+2)), (mem!(ip+3))]))) False = undefined
 perform 1 ip modes rb mem = (iInsert (ip + 3) (modes!!2) rb (a + b) mem, ip + 4, rb)
     where a = getMemoryValue (ip + 1) (modes!!0) rb mem
           b = getMemoryValue (ip + 2) (modes!!1) rb mem
@@ -149,6 +149,12 @@ getMemoryValue loc Immediate _ mem = M.findWithDefault 0 loc mem
 getMemoryValue loc Relative rb mem = getMemoryValue loc' Immediate 0 mem
     where loc' = rb + M.findWithDefault 0 loc mem
 
+-- indirect insert
+iInsert :: Integer -> ParameterMode -> Integer -> Integer -> Memory -> Memory
+iInsert loc Position _rb value mem = M.insert iloc value mem
+    where iloc = M.findWithDefault 0 loc mem
+iInsert loc Relative rb value mem = M.insert iloc value mem
+    where iloc = rb + M.findWithDefault 0 loc mem
 
 parameterModes :: Integer -> [ParameterMode]
 parameterModes modeCode = unfoldr generateMode modeCode
@@ -159,25 +165,6 @@ generateMode modeCode = Just (mode, modeCode `div` 10)
                     0 -> Position
                     1 -> Immediate
                     2 -> Relative
-
-
--- Some IntMap utility functions, for syntactic sugar
-
--- -- prefix version of (!)
--- lkup k m = m!k
-
--- -- indirect lookup
--- (!>) m k = m!(m!k)
-
--- indirect insert
--- iInsert k v m = M.insert (m!k) v m
-iInsert :: Integer -> ParameterMode -> Integer -> Integer -> Memory -> Memory
-iInsert loc Position _rb value mem = M.insert iloc value mem
-    where iloc = M.findWithDefault 0 loc mem
-iInsert loc Relative rb value mem = M.insert iloc value mem
-    where iloc = rb + M.findWithDefault 0 loc mem
-
-
 
 -- Parse the input file
 type Parser = Parsec Void Text
@@ -199,3 +186,4 @@ successfulParse input =
         case parse memoryP "input" input of
                 Left  _err -> [] -- TIO.putStr $ T.pack $ parseErrorPretty err
                 Right memory -> memory
+                
