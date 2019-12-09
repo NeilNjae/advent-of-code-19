@@ -46,6 +46,7 @@ packages:
 - advent07
 - advent08
 - advent09
+- intcode
 
 
 # Dependency packages to be pulled from upstream that are not in the resolver.
