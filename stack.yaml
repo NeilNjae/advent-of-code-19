@@ -37,6 +37,7 @@ ghc-options:
 
 packages:
 # - .
+- intcode
 - advent01
 - advent02
 - advent03

@@ -56,6 +56,5 @@ executables:
     dependencies:
     - base >= 2 && < 6
     - text
-    - megaparsec
     - containers
-    - mtl
+    - intcode
