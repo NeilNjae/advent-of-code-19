@@ -57,3 +57,11 @@ executables:
     - base >= 2 && < 6
     - containers
     - linear
+
+  advent10i:
+    main: advent10i.hs
+    source-dirs: src
+    dependencies:
+    - base >= 2 && < 6
+    - containers
+    - linear
