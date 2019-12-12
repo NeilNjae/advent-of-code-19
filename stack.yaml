@@ -48,6 +48,7 @@ packages:
 - advent08
 - advent09
 - advent10
+- advent11
 
 
 # Dependency packages to be pulled from upstream that are not in the resolver.
