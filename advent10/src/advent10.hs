@@ -12,7 +12,7 @@ type Position = V2 Rational
 
 type Asteroids = S.Set Position
 
-type TargetInfo = (Float, Float)
+type TargetInfo = (Double, Double)
 type Targets = M.Map TargetInfo Position
 
 main :: IO ()
@@ -76,7 +76,7 @@ targetInfo origin target = (angle, range)
 targetSequence :: Targets -> [Position]
 targetSequence targets = targetNext ((- pi / 2) - 0.001) targets
 
-targetNext :: Float -> Targets -> [Position]
+targetNext :: Double -> Targets -> [Position]
 targetNext angle targets 
     | M.null targets = []
     | M.null possibles = targetNext (- pi) targets
@@ -86,7 +86,7 @@ targetNext angle targets
           targets' = M.delete (targetAngle, targetRange) targets
           angle' = targetAngle
 
-possibleTargets :: Float -> Targets -> Targets
+possibleTargets :: Double -> Targets -> Targets
 possibleTargets angle targets = M.filterWithKey (\(a, _) _ -> a > angle) targets
 
 firstTarget :: Targets -> (TargetInfo, Position)
