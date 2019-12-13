@@ -46,7 +46,7 @@ main = do
         print $ part2 planets
 
 part1 :: Planets (V3 Integer) -> Integer
-part1 planets = systemEnergy $ head $ drop 1000 $ simulate planets
+part1 = systemEnergy . head . drop 1000 . simulate
 
 part2 :: Planets (V3 Integer) -> Integer
 part2 planets = period
@@ -56,16 +56,19 @@ part2 planets = period
 
 
 enplanet :: (NVec a) => [a] -> Planets a
-enplanet = V.fromList . map (\p -> Planet {_pos = p, _vel = nvZero} )
+enplanet = V.fromList . map mkPlanet 
+
+mkPlanet :: (NVec a) => a -> Planet a
+mkPlanet p = Planet {_pos = p, _vel = nvZero}
 
 
 unzipPlanets :: V.Vector (Planet (V3 Integer)) -> [V.Vector (Planet (V1 Integer))]
-unzipPlanets planets = dimensionSlice $ V.map unzipPlanet planets
+unzipPlanets = dimensionSlice . V.map unzipPlanet
 
 unzipPlanet :: Planet (V3 Integer) -> [Planet (V1 Integer)]
 unzipPlanet planet = map mkPlanet posVecs
     where posVecs = unzipVec $ _pos planet
-          mkPlanet p = Planet {_pos = p, _vel = nvZero}
+
 
 unzipVec :: V3 Integer -> [V1 Integer]
 unzipVec (V3 x y z) = [V1 x, V1 y, V1 z]
