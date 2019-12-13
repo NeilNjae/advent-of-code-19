@@ -57,5 +57,5 @@ executables:
     - base >= 2 && < 6
     - text
     - megaparsec
-    - containers
     - linear
+    - vector

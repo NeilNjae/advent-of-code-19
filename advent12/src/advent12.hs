@@ -10,17 +10,8 @@ import qualified Control.Applicative as CA
 
 import Linear (V3(..), V1(..), (^+^), (^-^))
 
-import qualified Data.Set as S
 import qualified Data.Vector as V
 
--- import Data.List (foldl')
--- import Data.Set ((\\))
--- import qualified Data.Map.Strict as M
--- import Data.Map.Strict ((!))
-
-
--- data Vec3 = Vec3 (V3 Integer) deriving (Show, Eq, Ord)
--- data Vec1 = Vec1 (V1 Integer) deriving (Show, Eq, Ord)
 class (Ord a) => NVec a where
     (^+^^) :: a -> a -> a
     (^-^^) :: a -> a -> a
@@ -41,12 +32,8 @@ instance NVec (V3 Integer) where
     nvAbsSum (V3 x y z) = (abs x) + (abs y) + (abs z)
 
 
--- data Vec = Vec1 (V1 Integer) | Vec3 (V3 Integer) 
---     deriving (Show, Eq, Ord)
--- data Planet1 = Planet { _pos :: (V1 Integer), _vel :: (V1 Integer)} deriving (Show, Eq, Ord)
 data Planet a = Planet { _pos :: a , _vel :: a} deriving (Show, Eq, Ord)
--- type Planets1 = S.Set Planet1
-type Planets a = S.Set (Planet a)
+type Planets a = V.Vector (Planet a)
 
 
 main :: IO ()
@@ -54,28 +41,26 @@ main = do
         text <- TIO.readFile "data/advent12.txt"
         let planetsT = successfulParse text
         let planets = enplanet planetsT
-        print planets
+        -- print planets
         print $ part1 planets
         print $ part2 planets
 
 part1 :: Planets (V3 Integer) -> Integer
 part1 planets = systemEnergy $ head $ drop 1000 $ simulate planets
 
--- part2 :: Planets (V3 Integer) -> [Planet (V1 Integer)]
-part2 planets = take 10 $ simulate $ head planetDimensions -- take 10 $ simulate (head planetDimensions)
+part2 :: Planets (V3 Integer) -> Integer
+part2 planets = period
     where planetDimensions = unzipPlanets planets
+          simCounts = map countSimulate planetDimensions
+          period = foldl lcm 1 simCounts
 
 
-enplanet :: (NVec a) => [a] -> S.Set (Planet a)
-enplanet = S.fromList . map (\p -> Planet {_pos = p, _vel = nvZero} )
--- enplanet (Vec3 p)  = S.fromList . map (\p -> Planet {_pos = (Vec3 p), _vel = Vec3 (V3 0 0 0)} )
+enplanet :: (NVec a) => [a] -> Planets a
+enplanet = V.fromList . map (\p -> Planet {_pos = p, _vel = nvZero} )
 
--- _x (V3 x _ _) = x
--- _y (V3 _ y _) = y
--- _z (V3 _ _ z) = z
 
-unzipPlanets :: S.Set (Planet (V3 Integer)) -> [S.Set (Planet (V1 Integer))]
-unzipPlanets planets = dimensionSlice $ S.map unzipPlanet planets
+unzipPlanets :: V.Vector (Planet (V3 Integer)) -> [V.Vector (Planet (V1 Integer))]
+unzipPlanets planets = dimensionSlice $ V.map unzipPlanet planets
 
 unzipPlanet :: Planet (V3 Integer) -> [Planet (V1 Integer)]
 unzipPlanet planet = map mkPlanet posVecs
@@ -85,16 +70,21 @@ unzipPlanet planet = map mkPlanet posVecs
 unzipVec :: V3 Integer -> [V1 Integer]
 unzipVec (V3 x y z) = [V1 x, V1 y, V1 z]
 
-dimensionSlice :: (NVec a) => S.Set [Planet a] -> [S.Set (Planet a)]
+dimensionSlice :: (NVec a) => V.Vector [Planet a] -> [Planets a]
 dimensionSlice slicedPlanets = [sliceDim d | d <- [0..2]]
-    where sliceDim d = S.map (!!d) slicedPlanets
+    where sliceDim d = V.map (!!d) slicedPlanets
 
 
 
 simulate :: (NVec a) => Planets a -> [Planets a]
 simulate = iterate simulationStep 
 
-countSimulate 
+countSimulate :: (NVec a) => Planets a -> Integer
+countSimulate planets0 = go (simulationStep planets0) 1
+    where go planets n 
+            | planets0 == planets = n 
+            | otherwise = go (simulationStep planets) (n + 1)
+
 
 simulationStep :: (NVec a) => Planets a -> Planets a
 simulationStep planets = planets''
@@ -106,10 +96,10 @@ gravity :: (NVec a) => a -> a
 gravity v = nvSignum v
 
 applyGravity :: (NVec a) => Planets a -> Planets a
-applyGravity planets = S.map (applyGravityHere planets) planets
+applyGravity planets = V.map (applyGravityHere planets) planets
 
 applyGravityHere :: (NVec a) => Planets a -> Planet a -> Planet a
-applyGravityHere planets here = S.foldl' updateGravity here planets
+applyGravityHere planets here = V.foldl' updateGravity here planets
 
 updateGravity :: (NVec a) => Planet a -> Planet a -> Planet a
 updateGravity here there = here { _vel = vel'}
@@ -117,7 +107,7 @@ updateGravity here there = here { _vel = vel'}
             vel' = vel ^+^^ gravity ((_pos there) ^-^^ (_pos here))
 
 applyVelocity :: (NVec a) => Planets a -> Planets a
-applyVelocity = S.map applyVelocityHere
+applyVelocity = V.map applyVelocityHere
 
 applyVelocityHere :: (NVec a) => Planet a  -> Planet a
 applyVelocityHere here = here {_pos = (_pos here) ^+^^ (_vel here)}
@@ -132,7 +122,7 @@ potentalEnergy planet = nvAbsSum $ _pos planet
 kineticEnergy planet = nvAbsSum $ _vel planet
 totalEnergy planet = (potentalEnergy planet) * (kineticEnergy planet)
 
-systemEnergy = (S.foldl' (+) 0) . (S.map totalEnergy)
+systemEnergy = (V.foldl' (+) 0) . (V.map totalEnergy)
 
 
 
