@@ -12,7 +12,7 @@ import Linear (V3(..), V1(..), (^+^), (^-^))
 
 import qualified Data.Vector as V
 
-class (Ord a) => NVec a where
+class (Eq a) => NVec a where
     (^+^^) :: a -> a -> a
     (^-^^) :: a -> a -> a
     nvZero :: a
