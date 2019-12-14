@@ -50,6 +50,7 @@ packages:
 - advent10
 - advent11
 - advent12
+- advent13
 
 
 # Dependency packages to be pulled from upstream that are not in the resolver.
