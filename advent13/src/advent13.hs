@@ -13,9 +13,8 @@ import Data.List.Split
 
 type Position = (Integer, Integer) -- x, y
 data Cell  = Empty | Wall | Block | Paddle | Ball deriving (Show, Eq, Ord)
--- data Direction = North | East | South | West deriving (Show, Eq, Ord, Enum, Bounded)
 
-type Field = M.Map Position Cell
+type Screen = M.Map Position Cell
 
 data Game = Game 
     { _machine :: Machine
@@ -56,10 +55,11 @@ part2 mem = _currentScore game
           game = runGame game0
 
 
-buildScreen :: [Integer] -> (Field, Integer)
-buildScreen output = foldl' addCell (M.empty, 0) $ chunksOf 3 output
+buildScreen :: [Integer] -> (Screen, Integer)
+-- buildScreen output = foldl' addCell (M.empty, 0) $ chunksOf 3 output
+buildScreen = foldl' addCell (M.empty, 0) . chunksOf 3
 
-addCell :: (Field, Integer) -> [Integer] -> (Field, Integer)
+addCell :: (Screen, Integer) -> [Integer] -> (Screen, Integer)
 addCell (screen, _s) [- 1 , 0, s] = (screen, s)
 addCell (screen, score) [x, y, c] = (M.insert (x, y) (cellOf c) screen, score)
 
@@ -110,7 +110,7 @@ runGameMachine g = g { _machine = machine'
             input = _currentInput g
             (halted, machine', output) = runMachine input machine
 
-joystick :: Game -> Field -> Game
+joystick :: Game -> Screen -> Game
 joystick game screen = game {_currentInput = ci ++ [direction], 
                               _paddleX = px, _ballX = bx,
                               _executionState = termination}
@@ -139,7 +139,7 @@ ghcisetup text = game0
           game0 = buildGame mem'
 
 
-showScreen :: Field -> String
+showScreen :: Screen -> String
 showScreen screen = unlines rows
     where   minX = minimum $ map fst $ M.keys screen
             minY = minimum $ map snd $ M.keys screen
@@ -147,10 +147,10 @@ showScreen screen = unlines rows
             maxY = maximum $ map snd $ M.keys screen
             rows = [showScreenRow screen minX maxX y | y <- [minY..maxY]]
 
-showScreenRow :: Field -> Integer -> Integer -> Integer -> String
+showScreenRow :: Screen -> Integer -> Integer -> Integer -> String
 showScreenRow screen minX maxX y = [showScreenCell screen x y | x <- [minX..maxX]] 
 
-showScreenCell :: Field -> Integer -> Integer -> Char
+showScreenCell :: Screen -> Integer -> Integer -> Char
 showScreenCell screen x y = 
     case (M.findWithDefault Empty (x, y) screen) of 
         Empty -> ' '
