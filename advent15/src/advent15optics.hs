@@ -112,15 +112,17 @@ searchHullDirection here (hull, boundary) direction
     | found == Static = (M.insert there Wall hull, boundary)
     | otherwise = (M.insert there newCell hull, boundary ++ [there])
     where there = step here direction
-          robot = _droid $ hull!here
-          -- robot = hull ^.(at here) . _Just . droid
-          -- robot = view ((at here) . droid) hull
-          distance = _fromStart $ hull!here
+          -- robot = _droid $ hull!here
+          -- robot = fromJust $ preview (at here . _Just . isGoal) hull
+          robot = fromJust $ hull ^? at here . _Just . droid
+          -- distance = _fromStart $ hull!here
+          distance = fromJust $ hull ^? at here . _Just . fromStart
           (robot', found) = runDroid robot direction
-          newCell = Vacant { _droid = robot'
-                          , _fromStart = distance + 1
-                          , _isGoal = (found == Goal)
-                          }
+          -- newCell = Vacant { _droid = robot'
+          --                 , _fromStart = distance + 1
+          --                 , _isGoal = (found == Goal)
+          --                 }
+          newCell = _Vacant # (robot', distance + 1, found == Goal)
 
 fillTime :: Hull -> (S.Set Position) -> [(Position, Integer)] -> Integer -> Integer
 fillTime _ _ [] t = t
@@ -136,8 +138,10 @@ goalNotFound :: (Hull, Boundary) -> Bool
 goalNotFound (hull, _boundary) = M.null $ M.filter containsGoal hull
 
 containsGoal :: Cell -> Bool
-containsGoal Wall = False
-containsGoal c = _isGoal c
+-- containsGoal Wall = False
+-- containsGoal c = _isGoal c
+containsGoal c = fromMaybe False $ c ^? isGoal
+
 
 incomplete (_, []) = False
 incomplete (_, (_:_)) = True
@@ -151,13 +155,17 @@ runDroid robot direction = (robot', found)
 
 
 runDroidMachine :: Droid -> Droid
-runDroidMachine d = d { _machine = machine'
-                      , _executionState = halted
-                      , _machineOutput = output
-                      }
-    where   machine = _machine d
-            input = _currentInput d
-            (halted, machine', output) = runMachine input machine
+-- runDroidMachine d = d { _machine = machine'
+--                       , _executionState = halted
+--                       , _machineOutput = output
+--                       }
+    -- where   machine = _machine d
+    --         input = _currentInput d
+    --         (halted, machine', output) = runMachine input machine
+runDroidMachine d = d & machine .~ machine' 
+                      & executionState .~ halted 
+                      & machineOutput .~ output
+    where (halted, machine', output) = runMachine (d ^. currentInput) (d ^. machine)
 
 
 showHull :: Hull -> String
