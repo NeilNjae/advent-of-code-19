@@ -58,3 +58,13 @@ executables:
     - text
     - containers
     - intcode
+
+  advent15optics:
+    main: advent15optics.hs
+    source-dirs: src
+    dependencies:
+    - base >= 2 && < 6
+    - text
+    - containers
+    - intcode
+    - lens

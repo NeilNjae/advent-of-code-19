@@ -8,6 +8,9 @@ import qualified Data.Map.Strict as M
 import Data.Map.Strict ((!))
 import Data.List
 import qualified Data.Set as S
+import Control.Lens
+import Data.Map.Lens
+import Data.Maybe
 
 type Position = (Integer, Integer) -- x, y
 type Boundary = [Position]
@@ -20,6 +23,7 @@ data Droid = Droid
     , _currentInput :: [Integer]
     , _machineOutput :: [Integer]
     } deriving (Eq)
+makeLenses ''Droid
 
 instance Show Droid where
   show d = "Droid {<m>, _executionState = " ++ show (_executionState d) ++
@@ -27,13 +31,16 @@ instance Show Droid where
            ", _machineOutput = " ++ show (_machineOutput d) ++
            " }"
 
-data Cell = Empty { _droid :: Droid 
+data Cell = Vacant { _droid :: Droid 
                   , _fromStart :: Integer
                   , _isGoal :: Bool
                   } 
                   | Wall 
                   | Unknown
                   deriving (Show, Eq)
+makeLenses ''Cell
+makePrisms ''Cell
+
 type Hull = M.Map Position Cell
 
 
@@ -46,7 +53,7 @@ main = do
         print $ part2 mem
 
 part1 mem = _fromStart $ snd $ M.findMin $ M.filter (containsGoal) hull
-    where hull = searchHull $ initialHullBoundary mem
+    where hull = fst $ head $ searchHull $ initialHullBoundary mem
 
 
 part2 mem = fillTime hull S.empty [(start, 0)] 0
@@ -81,12 +88,12 @@ buildDroid mem = Droid
 
 initialHullBoundary :: [Integer] -> (Hull, Boundary)
 initialHullBoundary mem = (hull, [(0, 0)])
-    where droid = buildDroid mem
-          hull = M.singleton (0, 0) (Empty {_droid = droid, _fromStart = 0, _isGoal = False})
+    where robot = buildDroid mem
+          hull = M.singleton (0, 0) (Vacant {_droid = robot, _fromStart = 0, _isGoal = False})
 
 
-searchHull :: (Hull, Boundary) -> Hull
-searchHull hullBoundary = fst $ head $ dropWhile goalNotFound $ iterate searchHullStep hullBoundary
+searchHull :: (Hull, Boundary) -> [(Hull, Boundary)]
+searchHull hullBoundary = dropWhile goalNotFound $ iterate searchHullStep hullBoundary
 
 
 completeHull :: (Hull, Boundary) -> Hull
@@ -105,10 +112,12 @@ searchHullDirection here (hull, boundary) direction
     | found == Static = (M.insert there Wall hull, boundary)
     | otherwise = (M.insert there newCell hull, boundary ++ [there])
     where there = step here direction
-          droid = _droid $ hull!here
+          robot = _droid $ hull!here
+          -- robot = hull ^.(at here) . _Just . droid
+          -- robot = view ((at here) . droid) hull
           distance = _fromStart $ hull!here
-          (droid', found) = runDroid droid direction
-          newCell = Empty { _droid = droid'
+          (robot', found) = runDroid robot direction
+          newCell = Vacant { _droid = robot'
                           , _fromStart = distance + 1
                           , _isGoal = (found == Goal)
                           }
@@ -135,10 +144,10 @@ incomplete (_, (_:_)) = True
 
 
 runDroid :: Droid -> Direction -> (Droid, ReturnValue)
-runDroid droid direction = (droid', found)
-    where   ci = _currentInput droid
-            droid' = runDroidMachine (droid {_currentInput = ci ++ [commandOf direction]})
-            found = returnValue $ last $ _machineOutput droid'
+runDroid robot direction = (robot', found)
+    where   ci = _currentInput robot
+            robot' = runDroidMachine (robot {_currentInput = ci ++ [commandOf direction]})
+            found = returnValue $ last $ _machineOutput robot'
 
 
 runDroidMachine :: Droid -> Droid
@@ -165,7 +174,7 @@ showHullRow screen minX maxX y = [showHullCell screen x y | x <- [minX..maxX]]
 showHullCell :: Hull -> Integer -> Integer -> Char
 showHullCell screen x y = 
     case (M.findWithDefault Unknown (x, y) screen) of 
-        Empty _ _ True -> 'O'
-        Empty _ _ _ -> '.'
+        Vacant _ _ True -> 'O'
+        Vacant _ _ _ -> '.'
         Wall -> '\x2588'
         Unknown -> ' '
