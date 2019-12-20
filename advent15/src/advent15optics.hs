@@ -114,9 +114,10 @@ searchHullDirection here (hull, boundary) direction
     where there = step here direction
           -- robot = _droid $ hull!here
           -- robot = fromJust $ preview (at here . _Just . isGoal) hull
-          robot = fromJust $ hull ^? at here . _Just . droid
+          -- robot = fromJust $ hull ^? at here . _Just . droid
+          robot = fromJust $ hull ^? ix here . droid
           -- distance = _fromStart $ hull!here
-          distance = fromJust $ hull ^? at here . _Just . fromStart
+          distance = fromJust $ hull ^? ix here . fromStart
           (robot', found) = runDroid robot direction
           -- newCell = Vacant { _droid = robot'
           --                 , _fromStart = distance + 1
