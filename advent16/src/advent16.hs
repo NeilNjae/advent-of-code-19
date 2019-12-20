@@ -1,13 +1,4 @@
-import Debug.Trace
-
 import Data.Char (digitToInt, intToDigit)
-
--- import qualified Data.Map.Strict as M
--- import Data.Map.Strict ((!))
-import Data.List
--- import qualified Data.Set as S
-
-
 
 main :: IO ()
 main = do 
@@ -21,6 +12,7 @@ main = do
 part1 :: [Int] -> String
 part1 digits = map intToDigit $ take 8 $ (fft digits)!!100
 
+part2 :: [Int] -> String
 part2 digits = map intToDigit signal
     where offset = read @Int $ map intToDigit $ take 7 digits 
           fullDigits = concat $ replicate 10000 digits
