@@ -4,39 +4,38 @@ import Intcode
 
 import qualified Data.Text.IO as TIO
 
-import qualified Data.Map.Strict as M
-import Data.Map.Strict ((!))
-import Data.List
 import qualified Data.Set as S
--- import Data.Char
+import Data.Char
 import Data.List
+import Control.Monad
 
-type Position = (Integer, Integer) -- x, y
-type Boundary = [Position]
-data Direction = North | East | South | West deriving (Show, Eq, Ord)
-data ReturnValue = Static | Moved | Goal deriving (Show, Eq, Ord)
+type Position = (Integer, Integer) -- r, c
+data Direction = North | East | South | West deriving (Show, Eq, Ord, Enum, Bounded)
+data Step = F | ACW | CW deriving (Show, Eq, Ord)
+data Command = FN Int | L | R | A | B | C deriving (Eq)
 
-data Droid = Droid
-    { _machine :: Machine
-    , _executionState :: ExecutionState
-    , _currentInput :: [Integer]
-    , _machineOutput :: [Integer]
-    } deriving (Eq)
+instance Show Command where
+    show (FN n) = show n
+    show L = "L"
+    show R = "R"
+    show A = "A"
+    show B = "B"
+    show C = "C"
+    showList [] s = s
+    showList (c:[]) s = (show c) ++ s
+    showList (c:cs) s = (show c) ++ "," ++ (showList cs s)
 
-instance Show Droid where
-  show d = "Droid {<m>, _executionState = " ++ show (_executionState d) ++
-           ", _currentInput = " ++ show (_currentInput d) ++
-           ", _machineOutput = " ++ show (_machineOutput d) ++
-           " }"
+type Routine = ([Command], [Command], [Command], [Command])
 
 type Scaffold = S.Set Position
 
-data ScaffoldBuilder = ScaffoldBuilder { _scaffold :: Scaffold
-                     , _r :: Integer
-                     , _c :: Integer
-                     , _droidPos :: Position
-                     , _droidDirection :: Direction
-                     } deriving (Show, Eq)
+data ScaffoldBuilder = ScaffoldBuilder 
+    { _scaffold :: Scaffold
+    , _r :: Integer
+    , _c :: Integer
+    , _droidPos :: Position
+    , _droidDirection :: Direction
+    } deriving (Show, Eq)
 
 
 main :: IO ()
@@ -46,7 +45,9 @@ main = do
         -- print mem
         let sb = buildScaffold mem
         print $ part1 sb
-        -- print $ part2 mem
+        let (scaff, num) = part2 sb mem
+        putStrLn scaff
+        print num
 
 
 part1 sb = S.foldl (+) 0 $ S.map alignmentParam intersections
@@ -54,12 +55,21 @@ part1 sb = S.foldl (+) 0 $ S.map alignmentParam intersections
           intersections = S.filter (isIntersection scaffold) scaffold
 
 
+part2 sb mem = (scaff, last output)
+    where compressedCmds = findRoutine sb
+          inputs = encodeRoutine compressedCmds
+          mem' = (2:(tail mem))
+          (_, _, output) = runProgram inputs mem'
+          scaff = map (chr . fromIntegral) $ init output
+
+
+buildScaffold :: [Integer] -> ScaffoldBuilder
 buildScaffold mem = foldl' addGridChar emptyScaffoldBuilder output
     where (_, _, output) = runProgram [] mem
           emptyScaffoldBuilder = ScaffoldBuilder {_scaffold = S.empty, _r = 0, _c = 0, 
                     _droidPos = (0, 0), _droidDirection = North }
 
-
+addGridChar :: ScaffoldBuilder -> Integer -> ScaffoldBuilder
 addGridChar sb 10  = sb { _r = _r sb + 1, _c = 0 }
 addGridChar sb 46  = sb { _c = _c sb + 1 }
 addGridChar sb 35  = sb { _scaffold = S.insert (_r sb, _c sb) $ _scaffold sb, 
@@ -86,38 +96,120 @@ alignmentParam :: Position -> Integer
 alignmentParam (r, c) = r * c
 
 
--- runDroid :: Droid -> Direction -> (Droid, ReturnValue)
--- runDroid droid direction = (droid', found)
---     where   ci = _currentInput droid
---             droid' = runDroidMachine (droid {_currentInput = ci ++ [commandOf direction]})
---             found = returnValue $ last $ _machineOutput droid'
+
+findRoutine :: ScaffoldBuilder -> Routine
+findRoutine scaff = head $ compressedCmds
+    where -- scaff = mkVisited sb
+          path = findPath scaff
+          cmds = toCommands path
+          compressedCmds = compress cmds
+
+encodeRoutine :: ([Command], [Command], [Command], [Command]) -> [Integer]
+encodeRoutine (abc, a, b, c) = map (fromIntegral . ord) $ unlines [show abc, show a, show b, show c, "n", ""]
+
+findPath :: ScaffoldBuilder -> [Step]
+findPath = unfoldr takeStep
+
+takeStep :: ScaffoldBuilder -> Maybe (Step, ScaffoldBuilder)
+takeStep visitedScaffold = step
+    where   scaff = _scaffold visitedScaffold
+            -- visited = _visited visitedScaffold
+            here = _droidPos visitedScaffold
+            dir = _droidDirection visitedScaffold
+            fPos   = ahead here dir
+            cwPos  = ahead here $ succW dir
+            acwPos = ahead here $ predW dir
+            step = if canVisit scaff fPos
+                   then Just (F, visitedScaffold {_droidPos = fPos})
+                   else if canVisit scaff cwPos
+                        then Just (CW, visitedScaffold {_droidDirection = succW dir})
+                        else if canVisit scaff acwPos
+                             then Just (ACW, visitedScaffold {_droidDirection = predW dir})
+                             else Nothing
+
+ahead :: Position -> Direction -> Position
+ahead (r, c) North = (r - 1, c)
+ahead (r, c) South = (r + 1, c)
+ahead (r, c) West  = (r, c - 1)
+ahead (r, c) East  = (r, c + 1)
+
+canVisit :: Scaffold -> Position -> Bool
+canVisit scaff here = (S.member here scaff)
+
+toCommands :: [Step] -> [Command]
+toCommands path = map toCommand segments
+    where segments = group path
+
+toCommand :: [Step] -> Command
+toCommand segment = case (head $ segment) of 
+    F -> FN (length segment)
+    CW -> R
+    ACW -> L
+
+compress :: [Command] -> [Routine]
+compress commands = 
+    do  a <- tail $ inits commands
+        guard $ length (show a) <= 20
+        let commandsA = replace a A commands
+        let commandsABase = dropWhile (not . isBase) commandsA
+        b <- tail $ inits commandsABase        
+        guard $ onlyBase b
+        guard $ length (show b) <= 20
+        let commandsAB = replace b B commandsA
+        let commandsABBase = dropWhile (not . isBase) commandsAB
+        c <- tail $ inits commandsABBase
+        guard $ onlyBase c
+        guard $ length (show c) <= 20
+        let commandsABC = replace c C commandsAB
+        guard $ length (show commandsABC) <= 20
+        return (commandsABC, a, b, c)
+        
+
+replace :: Eq a => [a] -> a -> [a] -> [a]
+-- replace moves label commands | trace (show moves ++ " " ++ show label ++ " " ++ show commands) False = undefined
+replace _ _ [] = []
+replace moves label commands = 
+    if moves `isPrefixOf` commands
+    then (label:(replace moves label commands'))
+    else (head commands:(replace moves label (tail commands)))
+    where commands' = drop (length moves) commands
+
+onlyBase :: [Command] -> Bool
+onlyBase moves = all isBase moves
+
+isBase :: Command -> Bool
+isBase (FN _) = True
+isBase L = True
+isBase R = True
+isBase _ = False
 
 
--- runDroidMachine :: Droid -> Droid
--- runDroidMachine d = d { _machine = machine'
---                       , _executionState = halted
---                       , _machineOutput = output
---                       }
---     where   machine = _machine d
---             input = _currentInput d
---             (halted, machine', output) = runMachine input machine
+-- | a `succ` that wraps 
+succW :: (Bounded a, Enum a, Eq a) => a -> a 
+succW dir | dir == maxBound = minBound
+          | otherwise = succ dir
+
+-- | a `pred` that wraps
+predW :: (Bounded a, Enum a, Eq a) => a -> a
+predW dir | dir == minBound = maxBound
+          | otherwise = pred dir
 
 
-showHull :: Hull -> String
-showHull screen = unlines rows
-    where   minX = minimum $ map fst $ M.keys screen
-            minY = minimum $ map snd $ M.keys screen
-            maxX = maximum $ map fst $ M.keys screen
-            maxY = maximum $ map snd $ M.keys screen
-            rows = [showHullRow screen minX maxX y | y <- [minY..maxY]]
 
-showHullRow :: Hull -> Integer -> Integer -> Integer -> String
-showHullRow screen minX maxX y = [showHullCell screen x y | x <- [minX..maxX]] 
+-- showScaffold :: VisitedScaffold -> String
+-- showScaffold scaff = unlines rows
+--     where   minR = S.findMin $ S.map fst $ _scaffold scaff
+--             minC = S.findMin $ S.map snd $ _scaffold scaff
+--             maxR = S.findMax $ S.map fst $ _scaffold scaff
+--             maxC = S.findMax $ S.map snd $ _scaffold scaff
+--             rows = [showScaffoldRow scaff minC maxC r | r <- [minR..maxR]]
 
-showHullCell :: Hull -> Integer -> Integer -> Char
-showHullCell screen x y = 
-    case (M.findWithDefault Unknown (x, y) screen) of 
-        Empty _ _ True -> 'O'
-        Empty _ _ _ -> '.'
-        Wall -> '\x2588'
-        Unknown -> ' '
+-- showScaffoldRow :: VisitedScaffold -> Integer -> Integer -> Integer -> String
+-- showScaffoldRow scaff minC maxC r = [showScaffoldCell scaff r c | c <- [minC..maxC]] 
+
+-- showScaffoldCell :: VisitedScaffold -> Integer -> Integer -> Char
+-- showScaffoldCell scaff r c = 
+--     if S.member (r, c) (_scaffold scaff)
+--     then '#'
+--     else ' '
+
