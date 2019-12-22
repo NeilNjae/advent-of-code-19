@@ -99,13 +99,13 @@ alignmentParam (r, c) = r * c
 
 findRoutine :: ScaffoldBuilder -> Routine
 findRoutine scaff = head $ compressedCmds
-    where -- scaff = mkVisited sb
-          path = findPath scaff
+    where path = findPath scaff
           cmds = toCommands path
           compressedCmds = compress cmds
 
-encodeRoutine :: ([Command], [Command], [Command], [Command]) -> [Integer]
+encodeRoutine :: Routine -> [Integer]
 encodeRoutine (abc, a, b, c) = map (fromIntegral . ord) $ unlines [show abc, show a, show b, show c, "n", ""]
+
 
 findPath :: ScaffoldBuilder -> [Step]
 findPath = unfoldr takeStep
@@ -113,7 +113,6 @@ findPath = unfoldr takeStep
 takeStep :: ScaffoldBuilder -> Maybe (Step, ScaffoldBuilder)
 takeStep visitedScaffold = step
     where   scaff = _scaffold visitedScaffold
-            -- visited = _visited visitedScaffold
             here = _droidPos visitedScaffold
             dir = _droidDirection visitedScaffold
             fPos   = ahead here dir
@@ -162,6 +161,7 @@ compress commands =
         guard $ length (show c) <= 20
         let commandsABC = replace c C commandsAB
         guard $ length (show commandsABC) <= 20
+        guard $ onlyNonBase commandsABC
         return (commandsABC, a, b, c)
         
 
@@ -176,6 +176,9 @@ replace moves label commands =
 
 onlyBase :: [Command] -> Bool
 onlyBase moves = all isBase moves
+
+onlyNonBase :: [Command] -> Bool
+onlyNonBase moves = all (not . isBase) moves
 
 isBase :: Command -> Bool
 isBase (FN _) = True
