@@ -59,3 +59,15 @@ executables:
     - containers
     - pqueue
     - mtl
+    - lens
+
+  advent18direct:
+    main: advent18direct.hs
+    source-dirs: src
+    dependencies:
+    - base >= 2 && < 6
+    - text
+    - containers
+    - pqueue
+    - mtl
+    - lens
