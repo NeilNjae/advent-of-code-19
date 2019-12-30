@@ -71,3 +71,14 @@ executables:
     - pqueue
     - mtl
     - lens
+
+  advent18class:
+    main: advent18class.hs
+    source-dirs: src
+    dependencies:
+    - base >= 2 && < 6
+    - text
+    - containers
+    - pqueue
+    - mtl
+    - lens    

@@ -23,7 +23,7 @@ type Keys = S.Set Char
 type PointOfInterest = M.Map Position Char
 
 
-class (Eq e, Ord e) => ExplorerC e where 
+class (Eq e, Ord e, Show e) => ExplorerC e where 
     successors :: e -> CaveContext (Q.Seq e)
     estimateCost :: e -> CaveContext Int
     -- positionE :: e -> Position
@@ -119,7 +119,7 @@ instance ExplorerC Explorer4 where
 
 main :: IO ()
 main = do 
-        text <- readFile "data/advent18.txt"
+        text <- readFile "data/advent18x.txt"
         let (cc, explorer) = buildCaveComplex text
         -- print cc
         -- print explorer
@@ -191,6 +191,7 @@ aStar agenda closed
             let reached = _current currentAgendum
             nexts <- candidates currentAgendum closed
             let newAgenda = foldl' (\q a -> P.insert (_cost a) a q) (P.deleteMin agenda) nexts
+            -- let newAgenda = trace ("nexts " ++ ( show nexts)) newAgenda0
             reachedGoal <- isGoal reached
             if reachedGoal
             then return (Just currentAgendum)
@@ -206,6 +207,7 @@ isGoal explorer =
 
 
 candidates :: ExplorerC e => Agendum e -> ExploredStates e -> CaveContext (Q.Seq (Agendum e))
+-- candidates a _ | trace ("Cand " ++ show (a)) False = undefined
 candidates agendum closed = 
     do  let candidate = _current agendum
         let previous = _trail agendum
@@ -214,6 +216,7 @@ candidates agendum closed =
         mapM (makeAgendum candidate previous) nonloops
 
 makeAgendum :: ExplorerC e => e -> (Q.Seq e) -> e -> CaveContext (Agendum e)
+-- makeAgendum c _p n | trace ("Agendum " ++ (show c) ++ " " ++ (show n) ) False = undefined
 makeAgendum candidate previous new = 
     do cost <- estimateCost new
        return Agendum { _current = new
@@ -263,4 +266,4 @@ allSplits :: Ord a => S.Set a -> S.Set (a, S.Set a)
 allSplits xs = S.map (\x -> (x, S.delete x xs)) xs
 
 setToSeq :: Ord a => S.Set a -> Q.Seq a
-setToSeq = S.foldl (|>) Q.empty
+setToSeq xs = foldl' (|>) Q.empty $ S.toAscList xs

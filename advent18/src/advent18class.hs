@@ -22,13 +22,18 @@ type Position = (Integer, Integer) -- r, c
 type Keys = S.Set Char
 type PointOfInterest = M.Map Position Char
 
-data Explorer = Explorer { _position :: S.Set Char
-                           , _keysHeld :: Keys
-                           , _travelled :: Int
+data Explorer1 = Explorer1 { _explorer1Position :: Char
+                           , _explorer1KeysHeld :: Keys
+                           , _explorer1Travelled :: Int
                            } deriving (Show)
-makeLenses ''Explorer
+data Explorer4 = Explorer4 { _explorer4Position :: S.Set Char
+                           , _explorer4KeysHeld :: Keys
+                           , _explorer4Travelled :: Int
+                           } deriving (Show)
+makeFields ''Explorer1
+makeFields ''Explorer4
 
-type ExploredStates = S.Set Explorer
+type ExploredStates e = S.Set e
 
 type ExpandedCave = S.Set Position
 data ExpandedCaveComplex = ExpandedCaveComplex { _caveE :: ExpandedCave
@@ -52,60 +57,100 @@ makeLenses ''CaveComplex
 
 type CaveContext = Reader CaveComplex
 
-data Agendum = Agendum { _current :: Explorer
-                       , _trail :: Q.Seq Explorer
+data Agendum e = Agendum { _current :: e
+                       , _trail :: Q.Seq e
                        , _cost :: Int} deriving (Show, Eq)
-type Agenda = P.MinPQueue Int (Agendum)
+type Agenda e = P.MinPQueue Int (Agendum e)
 
 
-instance Eq Explorer where
-    e1 == e2 = (_position e1 == _position e2) && (_keysHeld e1 == _keysHeld e2)
+instance Eq Explorer1 where
+    e1 == e2 = (_explorer1Position e1 == _explorer1Position e2) && (_explorer1KeysHeld e1 == _explorer1KeysHeld e2)
+instance Eq Explorer4 where
+    e1 == e2 = (_explorer4Position e1 == _explorer4Position e2) && (_explorer4KeysHeld e1 == _explorer4KeysHeld e2)
 
-instance Ord Explorer where
+instance Ord Explorer1 where
     e1 `compare` e2 =
-        if _position e1 == _position e2
-        then (_keysHeld e1) `compare` (_keysHeld e2)
-        else (_position e1) `compare` (_position e2)
+        if _explorer1Position e1 == _explorer1Position e2
+        then (_explorer1KeysHeld e1) `compare` (_explorer1KeysHeld e2)
+        else (_explorer1Position e1) `compare`(_explorer1Position e2)
+instance Ord Explorer4 where
+    e1 `compare` e2 =
+        if _explorer4Position e1 == _explorer4Position e2
+        then (_explorer4KeysHeld e1) `compare` (_explorer4KeysHeld e2)
+        else (_explorer4Position e1) `compare`(_explorer4Position e2)
 
- 
+
+class (Eq e, Ord e, Show e) => Explorer e where 
+    successors :: e -> CaveContext (Q.Seq e)
+    estimateCost :: e -> CaveContext Int
+    extendExplorer :: e -> EdgeKey -> CaveEdge -> e
     -- positionE :: e -> Position
     -- keysHeldE :: e -> Keys
+    emptyExplorer :: e
 
-successors :: Explorer -> CaveContext (Q.Seq Explorer)
-successors explorer = -- return Q.empty
-    do let heres = explorer ^. position
-       cavern <- asks _cave
-       let kH = explorer ^. keysHeld
-       let locations0 = M.filterWithKey (\k _ds -> anyEdgeTouch heres k) cavern
-       let locations1 = M.filter (\e -> S.null ((e ^. keysRequired) `S.difference` kH)) locations0
-       let succs = M.foldrWithKey' (\k e q -> (extendExplorer explorer k e) <| q) Q.empty locations1
-       return succs
+instance Explorer Explorer1 where
+    successors explorer = -- return Q.empty
+        do  let here = explorer ^. position
+            cavern <- asks _cave
+            let kH = explorer ^. keysHeld
+            let locations0 = M.filterWithKey (\k _ds -> edgeTouches here k) cavern
+            let locations1 = M.filter (\e -> S.null ((e ^. keysRequired) `S.difference` kH)) locations0
+            let succs = M.foldrWithKey' (\k e q -> (extendExplorer explorer k e) <| q) Q.empty locations1
+            return succs
 
-estimateCost :: Explorer -> CaveContext Int
-estimateCost explorer = -- return 0
-    do let heres = explorer ^. position
-       ks <- asks _keys
-       cavern <- asks _cave
-       let kH = explorer ^. keysHeld
-       let unfound = ks `S.difference` kH
-       let unfoundEdges0 = M.filterWithKey (\k _ -> anyEdgeTouch heres k) cavern
-       let unfoundEdges = M.filterWithKey (\k _ -> not $ anyEdgeTouch kH k) unfoundEdges0
-       let furthest = maximum $ (0:) $ map _distance $ M.elems unfoundEdges
-       return $ max 0 $ furthest + (S.size unfound) - 1
+    estimateCost explorer = -- return 0
+        do let here = explorer ^. position
+           ks <- asks _keys
+           cavern <- asks _cave
+           let kH = explorer ^. keysHeld
+           let unfound = ks `S.difference` kH
+           let unfoundEdges = M.filterWithKey (\k _ -> (edgeTouches here k) && ((edgeOther here k) `S.member` unfound)) cavern
+           let furthest = maximum $ (0:) $ map _distance $ M.elems unfoundEdges
+           return $ max 0 $ furthest + (S.size unfound) - 1
+           -- return $ S.size unfound
 
-emptyExplorer :: S.Set Char -> Explorer
-emptyExplorer ps = Explorer { _position = ps, _keysHeld = S.empty, _travelled = 0 }
+    emptyExplorer = Explorer1 { _explorer1Position = '0', _explorer1KeysHeld = S.empty, _explorer1Travelled = 0 }
 
-extendExplorer :: Explorer -> EdgeKey -> CaveEdge -> Explorer
-extendExplorer explorer edgeKey edge = 
-    explorer & position .~ pos'
-             & keysHeld .~ kH'
-             & travelled .~ d'
-    where here = S.findMin $ S.filter (\p -> edgeTouches p edgeKey) (explorer ^. position)
-          there = edgeOther here edgeKey
-          kH' = S.insert there (explorer ^. keysHeld)
-          d' = (explorer ^. travelled) + (edge ^. distance)
-          pos' = S.insert there $ S.delete here (explorer ^. position)
+    extendExplorer explorer edgeKey edge = 
+        explorer & position .~ there
+                 & keysHeld .~ kH'
+                 & travelled .~ d'
+        where there = edgeOther (explorer ^. position) edgeKey
+              kH' = S.insert there (explorer ^. keysHeld)
+              d' = (explorer ^. travelled) + (edge ^. distance)
+
+instance Explorer Explorer4 where
+    successors explorer = -- return Q.empty
+        do let heres = explorer ^. position
+           cavern <- asks _cave
+           let kH = explorer ^. keysHeld
+           let locations0 = M.filterWithKey (\k _ds -> anyEdgeTouch heres k) cavern
+           let locations1 = M.filter (\e -> S.null ((e ^. keysRequired) `S.difference` kH)) locations0
+           let succs = M.foldrWithKey' (\k e q -> (extendExplorer explorer k e) <| q) Q.empty locations1
+           return succs
+
+    estimateCost explorer = -- return 0
+        do let heres = explorer ^. position
+           ks <- asks _keys
+           cavern <- asks _cave
+           let kH = explorer ^. keysHeld
+           let unfound = ks `S.difference` kH
+           let unfoundEdges0 = M.filterWithKey (\k _ -> anyEdgeTouch heres k) cavern
+           let unfoundEdges = M.filterWithKey (\k _ -> not $ anyEdgeTouch kH k) unfoundEdges0
+           let furthest = maximum $ (0:) $ map _distance $ M.elems unfoundEdges
+           return $ max 0 $ furthest + (S.size unfound) - 1
+
+    emptyExplorer = Explorer4 { _explorer4Position = S.fromList "0123", _explorer4KeysHeld = S.empty, _explorer4Travelled = 0 }
+
+    extendExplorer explorer edgeKey edge = 
+        explorer & position .~ pos'
+                 & keysHeld .~ kH'
+                 & travelled .~ d'
+        where here = S.findMin $ S.filter (\p -> edgeTouches p edgeKey) (explorer ^. position)
+              there = edgeOther here edgeKey
+              kH' = S.insert there (explorer ^. keysHeld)
+              d' = (explorer ^. travelled) + (edge ^. distance)
+              pos' = S.insert there $ S.delete here (explorer ^. position)
 
 
 main :: IO ()
@@ -120,7 +165,7 @@ main = do
 part1 :: ExpandedCaveComplex -> Position -> Int
 part1 cavern startPosition = maybe 0 _cost result
     where cc = contractCave cavern [startPosition]
-          explorer = emptyExplorer ['0']
+          explorer = emptyExplorer :: Explorer1
           result = runReader (searchCave explorer) cc
 
 part2 ::  ExpandedCaveComplex -> Position -> Int
@@ -131,7 +176,7 @@ part2 caveComplex0 (re, ce) = maybe 0 _cost result
         cavern = cavern0 `S.difference` [(re, ce), (re + 1, ce), (re - 1, ce), (re, ce + 1), (re, ce - 1)]
         caveComplex = caveComplex0 {_caveE = cavern}
         cc = contractCave caveComplex startPositions
-        explorer = emptyExplorer $ S.fromList "0123"
+        explorer = emptyExplorer :: Explorer4
         result = runReader (searchCave explorer) cc
 
 
@@ -211,18 +256,18 @@ possibleNeighbours :: Position -> S.Set Position
 possibleNeighbours (r, c) = [(r + 1, c), (r - 1, c), (r, c + 1), (r, c - 1)]     
 
 
-searchCave ::  Explorer -> CaveContext (Maybe (Agendum))
+searchCave :: (Explorer e, HasTravelled e Int, HasKeysHeld e Keys) => e -> CaveContext (Maybe (Agendum e))
 searchCave explorer = 
     do agenda <- initAgenda explorer
        aStar agenda S.empty
 
-initAgenda ::  Explorer -> CaveContext (Agenda)
+initAgenda :: (Explorer e, HasTravelled e Int, HasKeysHeld e Keys) => e -> CaveContext (Agenda e)
 initAgenda explorer = 
     do cost <- estimateCost explorer
        return $ P.singleton cost Agendum { _current = explorer, _trail = Q.empty, _cost = cost}
 
 
-aStar ::  Agenda -> ExploredStates -> CaveContext (Maybe (Agendum))
+aStar :: (Explorer e, HasTravelled e Int, HasKeysHeld e Keys) => Agenda e -> ExploredStates e -> CaveContext (Maybe (Agendum e))
 aStar agenda closed 
     -- | trace ("Peeping " ++ (show $ fst $ P.findMin agenda) ++ ": " ++ (show reached) ++ " <- " ++ (show $ toList $ Q.take 1 $ _trail $ currentAgendum) ++ " :: " ++ (show newAgenda)) False = undefined
     -- | trace ("Peeping " ++ (show $ _current $ snd $ P.findMin agenda) ) False = undefined
@@ -240,13 +285,13 @@ aStar agenda closed
                  else aStar newAgenda (S.insert reached closed)
 
 
-isGoal ::  Explorer -> CaveContext Bool
+isGoal :: (Explorer e, HasTravelled e Int, HasKeysHeld e Keys) => e -> CaveContext Bool
 isGoal explorer = 
     do ks <- asks _keys
        return $ ks == (explorer ^. keysHeld)
 
 
-candidates ::  Agendum -> ExploredStates -> CaveContext (Q.Seq (Agendum))
+candidates :: (Explorer e, HasTravelled e Int, HasKeysHeld e Keys) => Agendum e -> ExploredStates e -> CaveContext (Q.Seq (Agendum e))
 candidates agendum closed = 
     do  let candidate = _current agendum
         let previous = _trail agendum
@@ -254,7 +299,7 @@ candidates agendum closed =
         let nonloops = Q.filter (\s -> not $ s `S.member` closed) succs
         mapM (makeAgendum candidate previous) nonloops
 
-makeAgendum ::  Explorer -> (Q.Seq Explorer) -> Explorer -> CaveContext (Agendum)
+makeAgendum :: (Explorer e, HasTravelled e Int, HasKeysHeld e Keys) => e -> (Q.Seq e) -> e -> CaveContext (Agendum e)
 makeAgendum candidate previous new = 
     do predicted <- estimateCost new
        return Agendum { _current = new
