@@ -69,11 +69,11 @@ if the first form is ambiguous.
 
 To profile, use 
 ```
-stack build --executable-profiling --library-profiling --ghc-options="-fprof-auto -rtsopts"
+stack build --executable-profiling --library-profiling --ghc-options="-fprof-auto -rtsopts" advent01
 ```
 then run with
 ```
-stack exec -- advent01 +RTS -p -hy
+stack exec --profile -- advent01 +RTS -p -hy
 ```
 Generate the profile graph with
 ```

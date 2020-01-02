@@ -43,9 +43,9 @@
 <pre><code>stack ghci advent01:exe:advent01</code></pre>
 <p>if the first form is ambiguous.</p>
 <p>To profile, use</p>
-<pre><code>stack build --executable-profiling --library-profiling --ghc-options=&quot;-fprof-auto -rtsopts&quot;</code></pre>
+<pre><code>stack build --executable-profiling --library-profiling --ghc-options=&quot;-fprof-auto -rtsopts&quot; advent01</code></pre>
 <p>then run with</p>
-<pre><code>stack exec -- advent01 +RTS -p -hy</code></pre>
+<pre><code>stack exec --profile -- advent01 +RTS -p -hy</code></pre>
 <p>Generate the profile graph with</p>
 <pre><code>stack exec hp2ps advent01.hp</code></pre>
 <h1 id="packages">Packages</h1>
