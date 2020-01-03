@@ -1,0 +1,49 @@
+graph Cave1 {
+
+0 -- d [ label = ", 62"];
+0 -- p [ label = "sx, 162"];
+0 -- t [ label = ", 14"];
+1 -- g [ label = "t, 26"];
+1 -- q [ label = "o, 132"];
+1 -- x [ label = "n, 108"];
+
+d -- p [ label = "sx, 128"];
+d -- t [ label = ", 52"];
+f -- k [ label = "v, 34"];
+k -- z [ label = "r, 28"];
+l -- p [ label = ", 36"];
+p -- t [ label = "sx, 152"];
+p -- z [ label = ", 200"];
+
+e -- r [ label = ", 94"];
+e -- u [ label = "y, 62"];
+e -- x [ label = ", 198"];
+g -- q [ label = "ot, 118"];
+g -- x [ label = "nt, 94"];
+q -- x [ label = "no, 100"];
+r -- u [ label = "y, 128"];
+r -- v [ label = "k, 36"];
+r -- x [ label = ", 264"];
+u -- x [ label = "y, 184"];
+
+
+2 -- m [ label = "g, 180"];
+2 -- s [ label = ", 48"];
+a -- m [ label = "ceuw, 146"];
+a -- y [ label = "eu, 66"];
+m -- s [ label = "g, 228"];
+m -- y [ label = "cw, 96"];
+n -- o [ label = ", 18"];
+n -- s [ label = "d, 30"];
+
+3 -- h [ label = "m, 208"];
+3 -- i [ label = "lm, 224"];
+b -- w [ label = "a, 86"];
+c -- i [ label = ", 22"];
+c -- w [ label = ", 14"];
+h -- i [ label = "l, 32"];
+j -- o [ label = ", 48"];
+
+
+
+}

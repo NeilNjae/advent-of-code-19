@@ -1,0 +1,22 @@
+graph Cave {
+0 -- a [ label = ", 1"];
+0 -- e [ label = ", 1"];
+1 -- c [ label = "b, 2"];
+1 -- h [ label = "e, 4"];
+2 -- m [ label = "n, 4"];
+2 -- n [ label = "kl, 4"];
+3 -- i [ label = "h, 2"];
+3 -- k [ label = "g, 7"];
+a -- b [ label = ", 1"];
+a -- e [ label = ", 2"];
+b -- d [ label = "c, 2"];
+c -- h [ label = "be, 6"];
+c -- l [ label = "ij, 4"];
+d -- g [ label = "f, 2"];
+e -- f [ label = "d, 3"];
+i -- k [ label = "gh, 9"];
+j -- k [ label = ", 1"];
+m -- n [ label = "kln, 8"];
+n -- o [ label = "m, 2"];
+
+}

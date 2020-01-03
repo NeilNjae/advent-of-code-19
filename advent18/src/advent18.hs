@@ -20,19 +20,19 @@ type Keys = S.Set Char
 type PointOfInterest = M.Map Position Char
 
 data Explorer = Explorer { _position :: S.Set Char
-                           , _keysHeld :: Keys
-                           , _travelled :: Int
-                           } deriving (Show)
+                         , _keysHeld :: Keys
+                         , _travelled :: Int
+                         } deriving (Show)
 makeLenses ''Explorer
 
 instance Eq Explorer where
     e1 == e2 = (_position e1 == _position e2) && (_keysHeld e1 == _keysHeld e2)
 
 instance Ord Explorer where
-    e1 `compare` e2 =
-        if _position e1 == _position e2
-        then (_keysHeld e1) `compare` (_keysHeld e2)
-        else (_position e1) `compare` (_position e2)
+    e1 `compare` e2 = 
+           ((_position e1) `compare` (_position e2)) 
+        <> ((_keysHeld e1) `compare` (_keysHeld e2))
+
 
 type ExploredStates = S.Set Explorer
 
@@ -70,9 +70,23 @@ main = do
         text <- readFile "data/advent18.txt"
         let (ccE, startPosition) = buildCaveComplex text
         -- print ccE
-        -- print $ contractCave ccE [startPosition]
+        -- print $ S.size $ edgeC $ _caveE ccE
+        -- print $ S.size $ _cave $ contractCave ccE [startPosition]
+        -- putStrLn $ showContracted $ contractCave ccE [startPosition]
+        -- let (re, ce) = startPosition
+        -- let startPositions = [(re - 1, ce - 1), (re - 1, ce + 1), (re + 1 , ce - 1), (re + 1, ce + 1)]
+        -- let cavern0 = ccE ^. caveE
+        -- let cavern = cavern0 `S.difference` [(re, ce), (re + 1, ce), (re - 1, ce), (re, ce + 1), (re, ce - 1)]
+        -- let caveComplex = ccE & caveE .~ cavern
+        -- let cc = contractCave caveComplex startPositions
+        -- putStrLn $ showContracted cc 
         print $ part1 ccE startPosition
         print $ part2 ccE startPosition
+
+-- edgeC ec = S.foldl' ecAdd S.empty ec
+--     where ecAdd es n = S.union (eds n) es
+--           eds n = S.map (\m -> S.fromList [n, m]) $ nbrs n
+--           nbrs n = S.intersection ec $ possibleNeighbours n
 
 
 part1 :: ExpandedCaveComplex -> Position -> Int
@@ -126,6 +140,7 @@ edgeTouches x e
 
 anyEdgeTouch :: Keys -> CaveEdge -> Bool
 anyEdgeTouch xs e = S.foldl' (\t x -> t || (edgeTouches x e)) False xs
+-- anyEdgeTouch xs e = any (\x -> edgeTouches x e) $ S.toList xs
 
 edgeOther :: Char -> CaveEdge -> Char
 edgeOther x e 
@@ -264,6 +279,6 @@ showContracted cc = "graph Cave {\n" ++ bulk ++ "\n}"
     where   cavern = cc ^. cave
             bulk = S.foldr (\e s -> (showEdge e) ++ s) "" cavern
 
-showEdge e = (show h) ++ " -- " ++ (show t) ++ " [ label = \"" ++ (edgeLabel e) ++ "\"];\n"
+showEdge e = [h] ++ " -- " ++ [t] ++ " [ label = \"" ++ (edgeLabel e) ++ "\"];\n"
     where edgeLabel e = (S.toList (e ^. keysRequired)) ++ ", " ++ (show (e ^. distance))
           (h, t) = e ^. connections

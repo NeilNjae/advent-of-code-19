@@ -23,7 +23,7 @@ type Keys = S.Set Char
 type PointOfInterest = M.Map Position Char
 
 
-class (Eq e, Ord e, Show e) => ExplorerC e where 
+class (Eq e, Ord e, Show e) => Explorer e where 
     successors :: e -> CaveContext (Q.Seq e)
     estimateCost :: e -> CaveContext Int
     -- positionE :: e -> Position
@@ -52,7 +52,7 @@ data Agendum e = Agendum { _current :: e
 type Agenda e = P.MinPQueue Int (Agendum e)
 -- type Candidates e = S.Set (Int, Agendum e)
 
-instance ExplorerC Explorer1 where
+instance Explorer Explorer1 where
     successors explorer = 
         do  let here = _position1 explorer
             let locations0 = possibleNeighbours here
@@ -84,7 +84,7 @@ instance ExplorerC Explorer1 where
     keysHeldE = _keysHeld1  
     emptyExplorer = Explorer1 { _position1 = (0, 0), _keysHeld1 = S.empty }
 
-instance ExplorerC Explorer4 where
+instance Explorer Explorer4 where
     successors explorer = 
         do  let rawHeres = _position4 explorer
             let heres = setToSeq $ allSplits rawHeres
@@ -119,14 +119,14 @@ instance ExplorerC Explorer4 where
 
 main :: IO ()
 main = do 
-        text <- readFile "data/advent18x.txt"
+        text <- readFile "data/advent18.txt"
         let (cc, explorer) = buildCaveComplex text
         -- print cc
         -- print explorer
         print $ part1 cc explorer
         print $ part2 cc explorer
 
-part1 :: ExplorerC e => CaveComplex -> e -> Int
+part1 :: Explorer e => CaveComplex -> e -> Int
 part1 cave explorer = maybe 0 (( + 1) . _cost ) result
     where result = runReader (searchCave explorer) cave
 
@@ -145,13 +145,13 @@ part2 caveComplex0 explorer1 = maybe 0 (( + 1) . _cost ) result
         explorer = Explorer4 {_position4 = [(re + 1, ce + 1), (re - 1, ce + 1), (re + 1, ce - 1), (re - 1, ce - 1)], _keysHeld4 = S.empty }
         result = runReader (searchCave explorer) caveComplex
 
-keySeq :: ExplorerC e => (Agendum e) -> Q.Seq Keys
+keySeq :: Explorer e => (Agendum e) -> Q.Seq Keys
 keySeq agendum = Q.filter (not . S.null) kdiff
     where keyss = fmap keysHeldE $ _trail agendum
           kdiff = fmap (uncurry S.difference) $ Q.zip ((keysHeldE $ _current agendum) <| keyss) keyss
 
 
-searchCave :: ExplorerC e => e -> CaveContext (Maybe (Agendum e))
+searchCave :: Explorer e => e -> CaveContext (Maybe (Agendum e))
 searchCave explorer = 
     do agenda <- initAgenda explorer
        aStar agenda S.empty
@@ -174,13 +174,13 @@ buildCaveCell r (cc, explorer) (c, char)
           here = (r, c)
 
 
-initAgenda :: ExplorerC e => e -> CaveContext (Agenda e)
+initAgenda :: Explorer e => e -> CaveContext (Agenda e)
 initAgenda explorer = 
     do cost <- estimateCost explorer
        return $ P.singleton cost Agendum { _current = explorer, _trail = Q.empty, _cost = cost}
 
 
-aStar :: ExplorerC e => Agenda e -> ExploredStates e -> CaveContext (Maybe (Agendum e))
+aStar :: Explorer e => Agenda e -> ExploredStates e -> CaveContext (Maybe (Agendum e))
 -- aStar [] _ = Agendum {current=buildingTest, trail=[], cost=0}
 aStar agenda closed 
     -- | trace ("Peeping " ++ (show $ fst $ P.findMin agenda) ++ ": " ++ (show reached) ++ " <- " ++ (show $ toList $ Q.take 1 $ _trail $ currentAgendum) ++ " :: " ++ (show newAgenda)) False = undefined
@@ -200,13 +200,13 @@ aStar agenda closed
                  else aStar newAgenda (S.insert reached closed)
 
 
-isGoal :: ExplorerC e => e -> CaveContext Bool
+isGoal :: Explorer e => e -> CaveContext Bool
 isGoal explorer = 
     do keys <- asks (S.fromList . M.elems . _keys)
        return $ keys == keysHeldE explorer
 
 
-candidates :: ExplorerC e => Agendum e -> ExploredStates e -> CaveContext (Q.Seq (Agendum e))
+candidates :: Explorer e => Agendum e -> ExploredStates e -> CaveContext (Q.Seq (Agendum e))
 -- candidates a _ | trace ("Cand " ++ show (a)) False = undefined
 candidates agendum closed = 
     do  let candidate = _current agendum
@@ -215,7 +215,7 @@ candidates agendum closed =
         let nonloops = Q.filter (\s -> not $ s `S.member` closed) succs
         mapM (makeAgendum candidate previous) nonloops
 
-makeAgendum :: ExplorerC e => e -> (Q.Seq e) -> e -> CaveContext (Agendum e)
+makeAgendum :: Explorer e => e -> (Q.Seq e) -> e -> CaveContext (Agendum e)
 -- makeAgendum c _p n | trace ("Agendum " ++ (show c) ++ " " ++ (show n) ) False = undefined
 makeAgendum candidate previous new = 
     do cost <- estimateCost new
