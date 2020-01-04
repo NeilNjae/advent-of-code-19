@@ -8,9 +8,7 @@ import qualified Data.Map.Strict as M
 -- import Data.Map.Strict ((!))
 import Data.List
 
-newtype Position = Position (Integer, Integer) deriving (Ord, Eq, Show) -- x, y
-
-newtype Bounds = Bounds (Integer, Integer) deriving (Ord, Eq, Show) -- upper, lower
+type Bounds = (Integer, Integer) -- upper, lower
 
 type Beam = M.Map Integer Bounds
 
@@ -29,35 +27,30 @@ xRange = [0..49] :: [Integer]
 boxSize = 100 :: Integer
 
 
--- part1 :: Machine -> Integer
--- part1 machine = beamPresence
 part1 machine = sum $ map cellsInRange $ M.elems beamPresence
     where beamPresence = foldl' (traceBeam machine) M.empty xRange -- [0..49] @[Integer]
-          -- cir = map cellsInRange $ M.elems beamPresence
 
 
 part2 machine = score $ head $ dropWhile (not . containsBox) corners
--- part2 machine = corners
     where uppers = scanl' (traceUpper machine) 0 xs
           lowers = scanl' (traceLower machine) (0, 0) xs
           corners = zip (drop ((fromIntegral boxSize) - 1) uppers) lowers
           xs = [0..] :: [Integer]
+
+cellsInRange :: Bounds -> Integer
+cellsInRange (u, l) = l' - u'
+    where u' = min u maxY
+          l' = min l maxY
 
 containsBox (yt, (_xb, yb)) = yt + boxSize - 1 <= yb
 
 score (yt, (xb, _yb)) = xb * 10000 + yt
 
 
-cellsInRange :: Bounds -> Integer
-cellsInRange (Bounds (u, l)) = l' - u'
-    where u' = min u maxY
-          l' = min l maxY
-
-
 traceBeam :: Machine -> Beam -> Integer -> Beam
 -- traceBeam _machine beam x | trace ((show x) ++ " " ++ (show beam)) False = undefined
-traceBeam machine beam x = M.insert x (Bounds (u', l')) beam
-    where Bounds (prevU, _prevL) = M.findWithDefault (Bounds (0, 0)) (x - 1) beam
+traceBeam machine beam x = M.insert x (u', l') beam
+    where (prevU, _prevL) = M.findWithDefault (0, 0) (x - 1) beam
           (bic, _foundU) = beamInColumn machine x
           u = head $ dropWhile (\y -> not $ tractorBeamAt machine x y) [prevU..]
           l = head $ dropWhile (\y -> tractorBeamAt machine x y) [u..]
