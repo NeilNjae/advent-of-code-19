@@ -76,8 +76,8 @@ traceUpper machine prev x = u'
 traceLower :: Machine -> (Integer, Integer) -> Integer -> (Integer, Integer)
 traceLower machine (_, prev) x = (x, l')
     where (bic, foundU) = beamInColumn machine x
-          startU = max prev foundU
-          l = head $ dropWhile (\y -> tractorBeamAt machine x y) [startU..]
+          startL = if prev == 0 then foundU else prev
+          l = head $ dropWhile (\y -> tractorBeamAt machine x y) [startL..]
           l' = if prev == 0 && bic == False
                then 0
                else l - 1
