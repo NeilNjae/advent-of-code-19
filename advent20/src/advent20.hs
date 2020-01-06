@@ -8,7 +8,7 @@ import qualified Data.PQueue.Prio.Min as P
 import qualified Data.Set as S
 import qualified Data.Sequence as Q
 import Data.Sequence ((<|)) -- , (|>), (><))
-import Data.Foldable (foldl', any, sum) -- (toList, foldr', foldl', all)
+import Data.Foldable (foldl', sum) -- (toList, foldr', foldl', all)
 import Data.Char
 import Control.Monad.Reader
 import Control.Lens hiding ((<|), (|>))
@@ -18,8 +18,11 @@ import Data.Maybe (fromMaybe)
 
 type Position = (Int, Int) -- r, c
 
+
+data Location = Inner | Outer deriving (Eq, Ord, Show)
 data Portal = Portal { _label :: String
                      , _position :: Position
+                     , _location :: Location
                      } deriving (Eq, Ord, Show)
 makeLenses ''Portal
 
@@ -43,71 +46,90 @@ data Edge = Edge { _connects :: EdgeConnects
                  } deriving (Eq, Ord, Show)
 makeLenses ''Edge   
 
-type Maze = S.Set Edge
+type Edges = S.Set Edge
+
+-- type Maze = S.Set Edge
+data Maze = Maze { _maze :: Edges
+                 , _costPerLevel :: Int
+                 , _costToFinish :: Int
+                 } deriving (Eq, Ord, Show)
+-- makeLenses ''Maze                
 
 type MazeContext = Reader Maze
 
-type ExploredStates = S.Set Portal
+class (Eq s, Ord s, Show s) => SearchState s where
+    successors :: s -> MazeContext (Q.Seq (s, Edge))
+    estimateCost :: s -> MazeContext Int
+    emptySearchState :: Portal -> s
+    isGoal :: s -> MazeContext Bool
 
-data Agendum = Agendum { _current :: Portal
-                       , _trail :: Q.Seq Edge
-                       , _cost :: Int} deriving (Show, Eq)
+data LevelledSearchState = LevelledSearchState
+    { _portalS :: Portal
+    , _levelS :: Int
+    } deriving (Eq, Ord, Show)
+makeLenses ''LevelledSearchState    
+
+
+type ExploredStates s = S.Set s
+
+data Agendum s = 
+    Agendum { _current :: s
+            , _trail :: Q.Seq Edge
+            , _cost :: Int
+            } deriving (Show, Eq)
 makeLenses ''Agendum                       
 
-type Agenda = P.MinPQueue Int (Agendum)
+type Agenda s = P.MinPQueue Int (Agendum s)
 
 
 main :: IO ()
 main = do 
-        -- text <- readFile "data/advent20a.txt"
-        -- let mc = buildComplex text
-        -- print mc
-        -- let maze = contractMaze mc
-        -- print maze
         maze <- setup
+        -- print maze
         putStrLn $ showContracted maze
         print $ part1 maze
-        -- print $ S.size $ edgeC $ _caveE ccE
-        -- print $ S.size $ _cave $ contractCave ccE [startPosition]
-        -- putStrLn $ showContracted $ contractCave ccE [startPosition]
-        -- let (re, ce) = startPosition
-        -- let startPositions = [(re - 1, ce - 1), (re - 1, ce + 1), (re + 1 , ce - 1), (re + 1, ce + 1)]
-        -- let cavern0 = ccE ^. caveE
-        -- let cavern = cavern0 `S.difference` [(re, ce), (re + 1, ce), (re - 1, ce), (re, ce + 1), (re, ce - 1)]
-        -- let caveComplex = ccE & caveE .~ cavern
-        -- let cc = contractCave caveComplex startPositions
-        -- putStrLn $ showContracted cc 
-        -- print $ part1 ccE startPosition
-        -- print $ part2 ccE startPosition
-
--- edgeC ec = S.foldl' ecAdd S.empty ec
---     where ecAdd es n = S.union (eds n) es
---           eds n = S.map (\m -> S.fromList [n, m]) $ nbrs n
---           nbrs n = S.intersection ec $ possibleNeighbours n
-
+        print $ part2 maze
 
 
 setup = do
         text <- readFile "data/advent20.txt"
         let mc = buildComplex text
         -- print mc
-        return $  contractMaze mc
         -- print maze
+        return $ contractMaze mc
         
 
--- part1 :: Maze -> Int
-part1 maze = result -- maybe 0 _cost result
-    where result = runReader searchMaze maze
+part1 :: Maze -> Int
+-- part1 :: Maze -> Maybe (Agendum Portal)
+part1 maze = maybe 0 _cost result
+    where result = runReader searchMaze maze :: Maybe (Agendum Portal)
 
+part2 :: Maze -> Int
+-- part2 :: Maze -> Maybe (Agendum LevelledSearchState)
+part2 maze = maybe 0 _cost result
+    where result = runReader searchMaze maze :: Maybe (Agendum LevelledSearchState)
 
 
 buildComplex :: String -> MazeComplex
-buildComplex text = mc & portalLocs .~ pLocs
+buildComplex text = mc & portalLocs .~ pLocs & portalsE .~ portals'
     where mc = foldl' (buildMazeRow rows) mc0 [0..l]
           mc0 = MazeComplex {_mazeE = S.empty, _portalsE = S.empty, _portalLocs = S.empty}
           rows = lines text
           l = length rows - 1
+          minR = 2
+          maxR = l - 2
+          minC = 2
+          maxC = length (rows!!2) - 3
           pLocs = S.map _position (mc ^. portalsE)
+          portals = mc ^. portalsE
+          portals' = S.map (classifiyPortal minR maxR minC maxC) portals
+
+classifiyPortal :: Int -> Int -> Int -> Int -> Portal -> Portal
+classifiyPortal minR maxR minC maxC portal = portal & location .~ loc
+    where (r, c) = portal ^. position
+          loc = if (r == minR) || (r == maxR) || (c == minC) || (c == maxC)
+                then Outer
+                else Inner
 
 buildMazeRow :: [String] -> MazeComplex -> Int -> MazeComplex
 buildMazeRow rows mc r = foldl' (buildMazeCell rows r) mc [0..l]
@@ -127,11 +149,11 @@ buildMazeCell rows r mc c
 
 makePortal portals rows hc r c 
     | isUpper rc = if pr == '.'
-                   then S.insert (Portal [hc, rc] (r, c + 2)) portals
-                   else S.insert (Portal [hc, rc] (r, c - 1)) portals
+                   then S.insert (Portal { _label = [hc, rc], _position = (r, c + 2), _location = Outer } ) portals
+                   else S.insert (Portal { _label = [hc, rc], _position = (r, c - 1), _location = Outer } ) portals
     | isUpper dc = if pd == '.'
-                   then S.insert (Portal [hc, dc] (r + 2, c)) portals
-                   else S.insert (Portal [hc, dc] (r - 1, c)) portals
+                   then S.insert (Portal { _label = [hc, dc], _position = (r + 2, c), _location = Outer } ) portals
+                   else S.insert (Portal { _label = [hc, dc], _position = (r - 1, c), _location = Outer } ) portals
     | otherwise = portals
     where -- lc = charAt rows r (c - 1)
           rc = charAt rows r (c + 1)
@@ -141,6 +163,7 @@ makePortal portals rows hc r c
           pd = charAt rows (r + 2) c
           -- pl = charAt rows r (c - 1)
           pr = charAt rows r (c + 2)
+
 
 charAt :: [String] -> Int -> Int -> Char
 charAt rows r c = atDef ' ' (atDef "" rows r) c
@@ -157,13 +180,19 @@ atMaybe xs i
 
 
 contractMaze :: MazeComplex -> Maze
-contractMaze expanded = S.union mazeW mazeP
+contractMaze expanded = Maze 
+    { _maze = S.union mazeW mazeP
+    , _costPerLevel = cpl
+    , _costToFinish = ctf
+    }
     where starts = expanded ^. portalsE
-          mazeW = S.foldr (contractFrom expanded) S.empty starts
-          mazeP = S.foldr (addWarp starts) S.empty starts
+          mazeP = S.foldr (contractFrom expanded) S.empty starts
+          mazeW = S.foldr (addWarp starts) S.empty starts
+          cpl = minimum $ map (^. distance) $ S.toList $ S.filter (\e -> e ^. edgeType == Walk) mazeP
+          ctf = minimum $ map (^. distance) $ S.toList $ S.filter (edgeTouches term) mazeP
+          term = S.findMin $ S.filter (\p -> p ^. label == "ZZ") starts
 
-
-contractFrom :: MazeComplex -> Portal -> Maze -> Maze
+contractFrom :: MazeComplex -> Portal -> Edges -> Edges
 contractFrom expanded start maze0 = S.union maze0 reachables
     where startPos = start ^. position
           reachables = reachableFrom [(startPos, 0)] S.empty expanded' start
@@ -171,9 +200,9 @@ contractFrom expanded start maze0 = S.union maze0 reachables
                                & portalLocs %~ (S.delete startPos)
                                -- & mazeE %~ (S.delete startPos)
 
-reachableFrom :: [(Position, Int)] -> (S.Set Position) -> MazeComplex -> Portal -> Maze
+reachableFrom :: [(Position, Int)] -> (S.Set Position) -> MazeComplex -> Portal -> Edges
 reachableFrom [] _closed _expanded _start = S.empty
-reachableFrom ((here, distance):boundary) closed expanded start
+reachableFrom ((here, dist):boundary) closed expanded start
     | here `S.member` closed = reachableFrom boundary closed expanded start
     | here `S.member` ps = S.insert edge $ reachableFrom boundary closed' expanded start
     | otherwise = reachableFrom boundary' closed' expanded start
@@ -182,12 +211,12 @@ reachableFrom ((here, distance):boundary) closed expanded start
           closed' = S.insert here closed
           ps = expanded ^. portalLocs
           other = S.findMin $ S.filter (\p -> p ^. position == here) $ expanded ^. portalsE
-          edge = Edge { _connects = mkConnection start other, _edgeType = Walk, _distance = distance }
-          neighbours = S.map (\n -> (n, distance + 1)) nbrs
+          edge = Edge { _connects = mkConnection start other, _edgeType = Walk, _distance = dist }
+          neighbours = S.map (\n -> (n, dist + 1)) nbrs
           boundary' = boundary ++ (S.toAscList neighbours)
 
 
-addWarp :: Portals -> Portal -> Maze -> Maze
+addWarp :: Portals -> Portal -> Edges -> Edges
 addWarp portals portal warps
     | S.null others = warps
     | otherwise = S.insert warp warps
@@ -197,9 +226,8 @@ addWarp portals portal warps
           other = S.findMin others
           warp = Edge {_connects = mkConnection portal other, _edgeType = Teleport, _distance = 1}
 
-
 portalsConnect :: String -> Position -> Portal -> Bool
-portalsConnect lab pos portal = (pLabel == lab) && (not (pPos == pos))
+portalsConnect lab pos portal = (pLabel == lab) && (pPos /= pos)
     where pLabel = portal ^. label
           pPos = portal ^. position
 
@@ -207,16 +235,13 @@ portalsConnect lab pos portal = (pLabel == lab) && (not (pPos == pos))
 mkConnection :: Portal -> Portal -> EdgeConnects
 mkConnection a b = if a < b then (a, b) else (b, a)
 
+
 edgeTouches :: Portal -> Edge -> Bool
 edgeTouches p e
     | p == a = True
     | p == b = True
     | otherwise = False
     where (a, b) = e ^. connects
-
--- anyEdgeTouch :: S.Set Portal -> Edge -> Bool
--- -- anyEdgeTouch xs e = S.foldl' (\t x -> t || (edgeTouches e x)) False xs
--- anyEdgeTouch xs e = any (edgeTouches e) xs
 
 edgeOther :: Portal -> Edge -> Portal
 edgeOther x e 
@@ -233,22 +258,22 @@ mazePortals edges = S.foldr' mps S.empty edges
                      in S.insert p1 $ S.insert p2 ps
 
 
-
-searchMaze ::  MazeContext (Maybe (Agendum))
+searchMaze ::  SearchState s => MazeContext (Maybe (Agendum s))
 searchMaze = 
     do agenda <- initAgenda
        aStar agenda S.empty
 
-initAgenda ::  MazeContext (Agenda)
+initAgenda ::  SearchState s => MazeContext (Agenda s)
 initAgenda = 
-    do edges <- ask
+    do edges <- asks _maze
        let portals = mazePortals edges
        let portal = S.findMin $ S.filter (\p -> p ^. label == "AA") portals
-       cost <- estimateCost portal
-       return $ P.singleton cost Agendum { _current = portal, _trail = Q.empty, _cost = cost}
+       let ss = emptySearchState portal
+       c <- estimateCost ss
+       return $ P.singleton c Agendum { _current = ss, _trail = Q.empty, _cost = c}
 
 
-aStar ::  Agenda -> ExploredStates -> MazeContext (Maybe (Agendum))
+aStar ::  SearchState s => Agenda s -> ExploredStates s -> MazeContext (Maybe (Agendum s))
 aStar agenda closed 
     -- | trace ("Peeping " ++ (show $ fst $ P.findMin agenda) ++ ": " ++ (show reached) ++ " <- " ++ (show $ toList $ Q.take 1 $ _trail $ currentAgendum) ++ " :: " ++ (show newAgenda)) False = undefined
     -- | trace ("Peeping " ++ (show $ _current $ snd $ P.findMin agenda) ) False = undefined
@@ -266,57 +291,105 @@ aStar agenda closed
                  else aStar newAgenda (S.insert reached closed)
 
 
-isGoal :: Portal -> MazeContext Bool
-isGoal portal = return $ portal ^. label == "ZZ"
-
-candidates ::  Agendum -> ExploredStates -> MazeContext (Q.Seq (Agendum))
+candidates ::  SearchState s => Agendum s -> ExploredStates s -> MazeContext (Q.Seq (Agendum s))
 candidates agendum closed = 
     do  let candidate = agendum ^. current
         let previous = agendum ^. trail
+        -- let prevCost = agendum ^. cost
         succs <- successors candidate
         let nonloops = Q.filter (\s -> not $ (fst s) `S.member` closed) succs
         mapM (makeAgendum previous) nonloops
 
-makeAgendum ::  (Q.Seq Edge) -> (Portal, Edge) -> MazeContext (Agendum)
+makeAgendum ::  SearchState s => (Q.Seq Edge) -> (s, Edge) -> MazeContext (Agendum s)
 makeAgendum previous (newP, newE) = 
     do predicted <- estimateCost newP
-       let incurred = (newE ^. distance) + (sum $ fmap (^. distance) previous)
+       let newTrail = newE <| previous
+       let incurred = sum $ fmap (^. distance) newTrail
        return Agendum { _current = newP
-                      , _trail = newE <| previous
+                      , _trail = newTrail
                       , _cost = incurred + predicted
                       }
 
-successors :: Portal -> MazeContext (Q.Seq (Portal, Edge))
-successors portal = 
-    do maze <- ask
-       let edges = S.filter (edgeTouches portal) maze
-       let locations = S.map (\e -> (edgeOther portal e, e)) edges
-       let succs = S.foldr' (<|) Q.empty locations
-       return succs
 
-estimateCost :: Portal -> MazeContext Int
-estimateCost portal = return 0
-    -- do let heres = explorer ^. position
-    --    ks <- asks _keys
-    --    cavern <- asks _cave
-    --    let kH = explorer ^. keysHeld
-    --    let unfound = ks `S.difference` kH
-    --    let unfoundEdges0 = S.filter (\e -> edgeTouch heres e) cavern
-    --    let unfoundEdges = S.filter (\e -> not $ anyEdgeTouch kH e) unfoundEdges0
-    --    let furthest = S.findMax $ S.insert 0 $ S.map _distance unfoundEdges
-    --    return $ max 0 $ furthest + (S.size unfound) - 1
+instance SearchState Portal where
 
+    emptySearchState portal = portal
 
+    -- successors :: Portal -> MazeContext (Q.Seq (Portal, Edge))
+    successors portal = 
+        do maze <- asks _maze
+           let edges = S.filter (edgeTouches portal) maze
+           let locations = S.map (\e -> (edgeOther portal e, e)) edges
+           let succs = S.foldr' (<|) Q.empty locations
+           return succs
 
+    -- estimateCost :: Portal -> MazeContext Int
+    estimateCost _portal = return 0
 
+    -- isGoal :: Portal -> MazeContext Bool
+    isGoal portal = return $ portal ^. label == "ZZ"
+
+instance SearchState LevelledSearchState where
+    emptySearchState portal = LevelledSearchState {_portalS = portal, _levelS = 0}
+
+    -- successors :: LevelledSearchState -> MazeContext (Q.Seq (LevelledSearchState, Edge))
+    successors ss = 
+        do maze <- asks _maze
+           let lvl = ss ^. levelS
+           let portal = ss ^. portalS
+           let edges = S.filter (edgeTouches portal) maze
+           let lvlEdges = S.filter (edgeAtLevel portal lvl) edges 
+           let locations = S.map (\e -> (newLSS portal lvl e, e)) lvlEdges
+           let locations' = S.filter (\(s, _) -> (s ^. levelS) >= 0) locations
+           let succs = S.foldr' (<|) Q.empty locations'
+           return succs
+
+    -- estimateCost :: Portal -> MazeContext Int
+    estimateCost ss = -- return 0
+        do let lvl = ss ^. levelS
+           cpl <- asks _costPerLevel
+           ctf <- asks _costToFinish
+           let cplT = if ss ^. portalS . location == Outer
+                      then cpl * (lvl - 1) + 1
+                      else cpl * lvl
+           if isTerminal (ss ^. portalS)
+           then return 0 
+           else return (cplT + ctf)
+
+    -- isGoal :: LevelledSearchState -> MazeContext Bool
+    isGoal ss = return $ ss ^. portalS . label == "ZZ"
+
+edgeAtLevel portal lvl edge 
+    -- | (lvl == 0) && (isTerminal other) && (et == Walk) = True
+    | (lvl /= 0) && (isTerminal other) && (et == Walk) = False
+    | (lvl == 0) && (not $ isTerminal other) && (et == Walk) && ((other ^. location) == Outer) = False
+    | otherwise = True
+    where other = edgeOther portal edge
+          et = edge ^. edgeType
+
+isTerminal p = (p ^. label == "AA") || (p ^. label == "ZZ")
+
+newLSS :: Portal -> Int -> Edge -> LevelledSearchState
+newLSS portal lvl edge
+    | et == Teleport && pl == Outer = LevelledSearchState { _portalS = otherPortal, _levelS = lvl - 1 }
+    | et == Teleport && pl == Inner = LevelledSearchState { _portalS = otherPortal, _levelS = lvl + 1 }
+    | otherwise = LevelledSearchState { _portalS = otherPortal, _levelS = lvl } -- et == Walk
+    where pl = portal ^. location
+          et = edge ^. edgeType
+          otherPortal = edgeOther portal edge
 
 
 showContracted :: Maze -> String
-showContracted maze = "graph Maze {\n" ++ bulk ++ "\n}"
-    where   bulk = S.foldr (\e s -> (showEdge e) ++ s) "" maze
+showContracted m = "graph Maze {\n" ++ bulk ++ "\n}"
+    where   bulk = S.foldr (\e s -> (showEdge e) ++ s) "" (_maze m)
 
 showEdge :: Edge -> String
-showEdge e = (showPortal h) ++ " -- " ++ (showPortal t) ++ " [ label = \"" ++ (edgeLabel e) ++ "\"];\n"
-    where edgeLabel e = (show (e ^. edgeType)) ++ ", " ++ (show (e ^. distance))
+showEdge e = (showPortal h) ++ " -- " ++ (showPortal t) ++ " [ label = \"" ++ edgeLabel ++ "\" style = \"" ++ style ++ "\"];\n"
+    where -- edgeLabel e = (show (e ^. edgeType)) ++ ", " ++ (show (e ^. distance))
+          (edgeLabel, style) = 
+                if (e ^. edgeType) == Walk
+                then (show (e ^. distance), "solid")
+                else ("", "dashed")
           (h, t) = e ^. connects
-          showPortal p = p ^. label ++ (show (fst (p ^. position))) ++ "c" ++ (show (snd (p ^. position)))
+          -- showPortal p = p ^. label ++ (show (fst (p ^. position))) ++ "c" ++ (show (snd (p ^. position))) ++ (take 1 $ show (p ^. location))
+          showPortal p = p ^. label ++ "_" ++ (take 1 $ show (p ^. location))
