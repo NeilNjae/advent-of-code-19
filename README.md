@@ -3,7 +3,7 @@ title: "Advent of Code 2019"
 output: html_document
 css: modest.css
 ---
-Code to solve the [Advent of Code](http://adventofcode.com/2019/) puzzles. This year, I'm using the puzzles to develop my skills in [Haskell](https://wiki.haskell.org/Haskell).
+Code to solve the [Advent of Code](http://adventofcode.com/2019/) puzzles. This year, I'm using the puzzles to develop my skills in [Haskell](https://wiki.haskell.org/Haskell). I'm writing up a [commentary on these puzzles and my solutions](https://work.njae.me.uk/tag/advent-of-code/) on my blog.
 
 [Learn you a Haskell](http://learnyouahaskell.com/chapters), [Introduction to Haskell 98](https://www.haskell.org/tutorial/index.html), and [Hackage](https://hackage.haskell.org/) are good resources.
 
