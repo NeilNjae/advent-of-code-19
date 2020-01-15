@@ -7,6 +7,7 @@ import qualified Data.Text.IO as TIO
 import qualified Data.Map.Strict as M
 import Data.Map.Strict ((!))
 import Data.List
+-- import Data.Foldable
 -- import Data.Function (on)
 import Control.Lens
 import Control.Monad.RWS.Strict
@@ -17,8 +18,11 @@ data EncapsulatedMacine = EncapsulatedMacine
     , _executionState :: ExecutionState
     , _currentInput :: [Integer]
     , _machineOutput :: [Integer]
-    } deriving (Show, Eq)
+    } deriving (Eq)
 makeLenses ''EncapsulatedMacine    
+
+instance Show EncapsulatedMacine where 
+    show e = "EncapsulatedMacine {_machine = <>, _executionState = " ++ show (e ^. executionState) ++ ", _currentInput = " ++ show (e ^. currentInput) ++ ", _machineOutput = " ++ show (e ^. machineOutput) ++ "}"
 
 type Network = M.Map Integer EncapsulatedMacine
 
@@ -26,8 +30,15 @@ data Packet = Packet
     { _destination :: Integer
     , _packetX :: Integer
     , _packetY :: Integer
-    } deriving (Show, Eq)
+    } deriving (Show, Eq, Ord)
 makeLenses ''Packet    
+
+data NatNetwork = NatNetwork
+    { _natNetwork :: Network
+    , _natPacket :: Packet
+    , _natPreviousY :: Integer
+    } deriving (Show, Eq)
+makeLenses ''NatNetwork
 
 
 main :: IO ()
@@ -35,25 +46,80 @@ main = do
         text <- TIO.readFile "data/advent23.txt"
         let mem = parseMachineMemory text
         print $ part1 mem
-        -- print $ part2 mem
+        print $ part2 mem
 
 
-part1 mem = runNetworkUntil255 net
+part1 mem = (runNetworkUntil255 net) ^. packetY
     where   net = buildNetwork mem
+
+
+part2 mem = runNetworkUntilTermination natNet
+    where natNet = buildNatNetwork mem
+
 
 runNetworkUntil255 :: Network -> Packet
 runNetworkUntil255 net0
-    | not $ null goalPackets = head packets
+    | not $ null goalPackets = head goalPackets
     | otherwise = runNetworkUntil255 net3
     where   net1 = runNetworkStep net0
             (net2, packets) = extractPackets net1
             net3 = enqueuePackets net2 packets
-            goalPackets = filter (packet255) packets
+            goalPackets = filter isNatPacket packets
+
+runNetworkUntilTermination :: NatNetwork -> Integer
+-- runNetworkUntilTermination natNet | trace ("Nat: " ++ show (natNet ^. natPacket) ++ " last = " ++ show (natNet ^. natPreviousY)) False = undefined
+runNetworkUntilTermination natNet
+    | part2Termination natNet1 = natNet1 ^. natPacket . packetY
+    | otherwise = runNetworkUntilTermination natNet2
+    where natNet1 = runNetworkUntilIdle natNet
+          np = (natNet1 ^. natPacket) & destination .~ 0
+          net = natNet1 ^. natNetwork
+          net2 = enqueuePacket net np
+          natNet2 = natNet1 & natNetwork .~ net2
+                            & natPreviousY .~ (np ^. packetY)
+                            & natPacket .~ emptyPacket
+
+part2Termination :: NatNetwork -> Bool
+-- part2Termination natNet | trace ("Term. this: " ++ (show (natNet ^. natPacket)) ++ " prev: " ++ (show (natNet ^. natPreviousY))) False = undefined
+part2Termination natNet = thisY == prevY
+    where thisY = natNet ^. natPacket . packetY
+          prevY = natNet ^. natPreviousY
 
 
-packet255 :: Packet -> Bool
-packet255 packet = (packet ^. destination) == 255
+runNetworkUntilIdle :: NatNetwork -> NatNetwork
+runNetworkUntilIdle natNet
+    | isIdle net0 = natNet
+    | otherwise = runNetworkUntilIdle natNet'
+    where   net0 = natNet ^. natNetwork
+            net1 = runNetworkStep net0
+            (net2, packets) = extractPackets net1
+            net3 = enqueuePackets net2 packets
+            natPackets = filter isNatPacket packets
+            np = if null natPackets 
+                 then natNet ^. natPacket
+                 else head natPackets
+            natNet' = natNet & natNetwork .~ net3
+                             & natPacket .~ np
 
+
+emptyPacket :: Packet
+emptyPacket = Packet {_destination = 0, _packetX = 0, _packetY = 0}
+
+isNatPacket :: Packet -> Bool
+isNatPacket packet = (packet ^. destination) == 255
+
+isIdle :: Network -> Bool
+isIdle net = inputBlocked && noOutput
+    where inputBlocked = all (\e -> (last $ e ^. currentInput) == -1 && (last $ init $ e ^. currentInput) == -1) $ M.elems net
+          noOutput = all (\e -> null $ e ^. machineOutput) $ M.elems net
+
+
+buildNatNetwork :: [Integer] -> NatNetwork
+buildNatNetwork mem = NatNetwork 
+    { _natNetwork = buildNetwork mem
+    , _natPacket = emptyPacket
+    , _natPreviousY = -1
+    }
 
 buildNetwork :: [Integer] -> Network
 buildNetwork mem = M.fromList $ map (\i -> (i, encapsulate mem i)) [0..49]
@@ -68,18 +134,6 @@ encapsulate mem input = EncapsulatedMacine
     }
 
 
-
-
--- pipelineTrace :: Pipeline -> String
--- pipelineTrace pipeline = show $ M.toList $ M.map emTrace pipeline
-
--- emTrace e = intercalate " ; " terms
---     where terms = [ show $ _executionState e
---                   , "in"
---                   , show $ _currentInput e 
---                   , "out"
---                   , show $ _machineOutput e
---                   ]
 
 runNetworkStep :: Network -> Network
 runNetworkStep net = M.map runEncapsulatedMachine net
@@ -106,6 +160,7 @@ enqueuePackets :: Network -> [Packet] -> Network
 enqueuePackets net packets = foldl' enqueuePacket net packets
 
 enqueuePacket :: Network -> Packet -> Network
+-- enqueuePacket _ packet | trace ("Enqueue " ++ show packet) False = undefined
 enqueuePacket net packet
     | d `M.member` net = M.insert d e' net
     | otherwise = net
