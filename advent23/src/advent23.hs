@@ -49,7 +49,7 @@ main = do
         print $ part2 mem
 
 
-part1 mem = (runNetworkUntil255 net) ^. packetY
+part1 mem = runNetworkUntil255 net
     where   net = buildNetwork mem
 
 
@@ -57,9 +57,9 @@ part2 mem = runNetworkUntilTermination natNet
     where natNet = buildNatNetwork mem
 
 
-runNetworkUntil255 :: Network -> Packet
+runNetworkUntil255 :: Network -> Integer
 runNetworkUntil255 net0
-    | not $ null goalPackets = head goalPackets
+    | not $ null goalPackets = (head goalPackets) ^. packetY
     | otherwise = runNetworkUntil255 net3
     where   net1 = runNetworkStep net0
             (net2, packets) = extractPackets net1
@@ -145,7 +145,7 @@ extractPackets net = (net', packets)
 
 extractPacket :: EncapsulatedMacine -> [Packet]
 extractPacket e = if length output >= 3
-                  then [Packet { _destination = fromIntegral $ output!!0
+                  then [Packet { _destination = output!!0
                                , _packetX = output!!1
                                , _packetY = output!!2} ]
                   else []
