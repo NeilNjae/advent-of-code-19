@@ -1,0 +1,77 @@
+# This YAML file describes your package. Stack will automatically generate a
+# Cabal file when you run `stack build`. See the hpack website for help with
+# this file: <https://github.com/sol/hpack>.
+
+name: advent24
+synopsis: Advent of Code
+version: '0.0.1'
+
+default-extensions:
+- AllowAmbiguousTypes
+- ApplicativeDo
+- BangPatterns
+- BlockArguments
+- DataKinds
+- DeriveFoldable
+- DeriveFunctor
+- DeriveGeneric
+- DeriveTraversable
+- EmptyCase
+- FlexibleContexts
+- FlexibleInstances
+- FunctionalDependencies
+- GADTs
+- GeneralizedNewtypeDeriving
+- ImplicitParams
+- KindSignatures
+- LambdaCase
+- MonadComprehensions
+- MonoLocalBinds
+- MultiParamTypeClasses
+- MultiWayIf
+- NegativeLiterals
+- NumDecimals
+# - OverloadedLists
+- OverloadedStrings
+- PartialTypeSignatures
+- PatternGuards
+- PatternSynonyms
+- PolyKinds
+- RankNTypes
+- RecordWildCards
+- ScopedTypeVariables
+- TemplateHaskell
+- TransformListComp
+- TupleSections
+- TypeApplications
+- TypeFamilies
+- TypeInType
+- TypeOperators
+- ViewPatterns
+
+
+executables:
+  advent24:
+    main: advent24.hs
+    source-dirs: src
+    dependencies:
+    - base >= 2 && < 6
+    - finite-typelits
+    - containers
+    - mtl
+    - matrix
+    - comonad
+    - adjunctions
+    - distributive
+
+  advent24v:
+    main: advent24v.hs
+    source-dirs: src
+    dependencies:
+    - base >= 2 && < 6
+    - finite-typelits
+    - mtl
+    - vector
+    - comonad
+    - adjunctions
+    - distributive
