@@ -1,3 +1,8 @@
+{-# language DeriveFunctor #-}
+{-# language TypeFamilies #-}
+{-# language InstanceSigs #-}
+
+
 -- import Debug.Trace
 
 
@@ -22,6 +27,13 @@ import qualified Data.Map as M
 
 import Control.Concurrent (threadDelay)
 import Control.Monad (forM_)
+
+import Control.Comonad
+import Control.Comonad.Cofree
+import Data.Distributive
+import Data.Functor.Rep
+import qualified Data.Sequence as S
+import qualified Data.List.NonEmpty as NE
 
 
 instance Ord Grid where

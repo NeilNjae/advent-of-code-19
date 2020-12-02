@@ -64,6 +64,30 @@ executables:
     - adjunctions
     - distributive
 
+  advent24map:
+    main: advent24map.hs
+    source-dirs: src
+    dependencies:
+    - base >= 2 && < 6
+    - finite-typelits
+    - containers
+    - mtl
+    - comonad
+    - adjunctions
+    - distributive
+
+  # advent24zip:
+  #   main: advent24zip.hs
+  #   source-dirs: src
+  #   dependencies:
+  #   - base >= 2 && < 6
+  #   - finite-typelits
+  #   - containers
+  #   - mtl
+  #   - comonad
+  #   - adjunctions
+  #   - distributive
+
   advent24v:
     main: advent24v.hs
     source-dirs: src
