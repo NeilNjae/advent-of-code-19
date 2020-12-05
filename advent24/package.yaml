@@ -29,6 +29,7 @@ default-extensions:
 - MonoLocalBinds
 - MultiParamTypeClasses
 - MultiWayIf
+- NamedFieldPuns
 - NegativeLiterals
 - NumDecimals
 # - OverloadedLists
@@ -64,20 +65,15 @@ executables:
     - adjunctions
     - distributive
 
-  advent24map:
-    main: advent24map.hs
+  advent24b:
+    main: advent24b.hs
     source-dirs: src
     dependencies:
     - base >= 2 && < 6
-    - finite-typelits
     - containers
-    - mtl
-    - comonad
-    - adjunctions
-    - distributive
 
-  # advent24zip:
-  #   main: advent24zip.hs
+  # advent24map:
+  #   main: advent24map.hs
   #   source-dirs: src
   #   dependencies:
   #   - base >= 2 && < 6
@@ -88,14 +84,27 @@ executables:
   #   - adjunctions
   #   - distributive
 
-  advent24v:
-    main: advent24v.hs
-    source-dirs: src
-    dependencies:
-    - base >= 2 && < 6
-    - finite-typelits
-    - mtl
-    - vector
-    - comonad
-    - adjunctions
-    - distributive
+  # advent24tape:
+  #   main: advent24tape.hs
+  #   source-dirs: src
+  #   dependencies:
+  #   - base >= 2 && < 6
+  #   - finite-typelits
+  #   - containers
+  #   - mtl
+  #   - comonad
+  #   - adjunctions
+  #   - distributive
+  #   - free
+
+  # advent24v:
+  #   main: advent24v.hs
+  #   source-dirs: src
+  #   dependencies:
+  #   - base >= 2 && < 6
+  #   - finite-typelits
+  #   - mtl
+  #   - vector
+  #   - comonad
+  #   - adjunctions
+  #   - distributive

@@ -98,7 +98,7 @@ mkGrid xs = store (`elem` xs) (Ongrid 1 1)
 unGrid :: StoredGrid -> Grid Bool
 -- unGrid (StoreT (Identity g) _) = g
 unGrid grid = Grid False $ M.fromList gridList
-    where (sgf, _sgl) = runStore grid
+    where (sgf, _sgl) = runStore grid -- return pair is function for extracting elements, and current focus
           gridList = [((Ongrid r c), sgf (Ongrid r c)) | c <- [1..gridSize], r <- [1..gridSize]]
 
 
