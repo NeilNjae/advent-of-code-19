@@ -1,4 +1,4 @@
-import Debug.Trace
+-- import Debug.Trace
 
 import qualified Data.Set as S
 
@@ -14,7 +14,7 @@ gridSize = 5
 main :: IO ()
 main = 
     do grid0 <- readGrid
-       print grid0
+       -- print grid0
        let finalGrid = head $ drop 200 $ iterate update grid0
        print $ S.size finalGrid
 
@@ -36,27 +36,39 @@ neighbourSpaces cell =
 
 neighbourSpacesLeft :: Cell -> Grid
 neighbourSpacesLeft (Cell {..}) 
-  | column == 4 && row == 3 = S.fromList  [ Cell { level = (level + 1), row = r, column = 5} | r <- [1..gridSize] ]
-  | column == 1             = S.singleton ( Cell { level = (level - 1), row = 3, column = 2})
-  | otherwise               = S.singleton ( Cell { level, row, column = (column - 1)})
+  | column == 4 && row == 3 = S.fromList  [ Cell { level = (level + 1), 
+                                                  row = r, column = 5} 
+                                          | r <- [1..gridSize] ]
+  | column == 1             = S.singleton ( Cell { level = (level - 1), 
+                                                    row = 3, column = 2})
+  | otherwise               = S.singleton ( Cell { column = (column - 1), ..})
 
 neighbourSpacesRight :: Cell -> Grid
 neighbourSpacesRight (Cell {..}) 
-  | column == 2 && row == 3 = S.fromList  [ Cell { level = (level + 1), row = r, column = 1} | r <- [1..gridSize] ]
-  | column == 5             = S.singleton ( Cell { level = (level - 1), row = 3, column = 4})
-  | otherwise               = S.singleton ( Cell { level, row, column = (column + 1)})
+  | column == 2 && row == 3 = S.fromList  [ Cell { level = (level + 1), 
+                                                   row = r, column = 1} 
+                                          | r <- [1..gridSize] ]
+  | column == 5             = S.singleton ( Cell { level = (level - 1), 
+                                                   row = 3, column = 4})
+  | otherwise               = S.singleton ( Cell { column = (column + 1), ..})
 
 neighbourSpacesAbove :: Cell -> Grid
 neighbourSpacesAbove (Cell {..}) 
-  | row == 4 && column == 3 = S.fromList  [ Cell { level = (level + 1), row = 5, column = c} | c <- [1..gridSize] ]
-  | row == 1                = S.singleton ( Cell { level = (level - 1), row = 2, column = 3})
-  | otherwise               = S.singleton ( Cell { level, row = (row - 1), column})
+  | row == 4 && column == 3 = S.fromList  [ Cell { level = (level + 1), 
+                                                   row = 5, column = c} 
+                                          | c <- [1..gridSize] ]
+  | row == 1                = S.singleton ( Cell { level = (level - 1), 
+                                                   row = 2, column = 3})
+  | otherwise               = S.singleton ( Cell { row = (row - 1), ..})
 
 neighbourSpacesBelow :: Cell -> Grid
 neighbourSpacesBelow (Cell {..}) 
-  | row == 2 && column == 3 = S.fromList  [ Cell { level = (level + 1), row = 1, column = c} | c <- [1..gridSize] ]
-  | row == 5                = S.singleton ( Cell { level = (level - 1), row = 4, column = 3})
-  | otherwise               = S.singleton ( Cell { level, row = (row + 1), column})
+  | row == 2 && column == 3 = S.fromList  [ Cell { level = (level + 1), 
+                                                   row = 1, column = c} 
+                                          | c <- [1..gridSize] ]
+  | row == 5                = S.singleton ( Cell { level = (level - 1), 
+                                                   row = 4, column = 3})
+  | otherwise               = S.singleton ( Cell { row = (row + 1), ..})
 
 
 countOccupiedNeighbours :: Cell -> Grid -> Int
