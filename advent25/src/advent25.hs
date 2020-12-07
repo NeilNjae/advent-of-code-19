@@ -6,6 +6,10 @@ import qualified Data.Text.IO as TIO
 import qualified Data.Text as T
 import Data.Char
 import Data.List
+import Control.Monad.Reader
+
+type CachedMachine a = Reader (Machine, [String]) a
+
 
 main :: IO ()
 main = do 
@@ -48,21 +52,32 @@ powerList [] = [[]]
 powerList (x:xs) = powerList xs ++ map (x:) (powerList xs) 
 
 passSecurity :: Machine -> [String] -> [String] -> String
-passSecurity machine instructions items = 
-    "You keep: " ++ (intercalate ", " keeps) ++ "\n\n" ++ (attemptSecurity machine instructions validDropset)
+passSecurity machine instructions items = "You keep: " ++ (intercalate ", " keeps) ++ "\n\n" ++ successResponse
     where
+        env = (machine, instructions)
         dropsets = powerList items
-        validDropset = head $ filter (passesSecurity machine instructions) dropsets
+        validDropset = head $ filter (\ds -> runReader (passesSecurity ds) env) dropsets
+        successResponse = (runReader (attemptSecurity validDropset) env)
         keeps = items \\ validDropset
 
-passesSecurity :: Machine -> [String] -> [String] -> Bool
-passesSecurity machine instructions drops = not ("Alert" `isInfixOf` output)
-    where output = attemptSecurity machine instructions drops
+passesSecurity :: [String] -> CachedMachine Bool
+passesSecurity drops = 
+    do  output <- attemptSecurity drops
+        return $ not ("Alert" `isInfixOf` output)
 
-attemptSecurity :: Machine -> [String] -> [String] -> String
-attemptSecurity machine instructions drops = decodeOutput output
-    where dropCommands = map ("drop " ++ ) drops
-          (_, _, output) = runMachine (encodeCommands (instructions ++ dropCommands ++ ["north"])) machine
+attemptSecurity :: [String] -> CachedMachine String
+attemptSecurity drops = 
+    do  let dropCommands = map ("drop " ++ ) drops
+        output <- runCachedMachine dropCommands
+        return output 
+
+runCachedMachine :: [String] -> CachedMachine String
+runCachedMachine dropCommands =
+    do (machine, instructions) <- ask
+       let (_, _, output) = runMachine (encodeCommands (instructions ++ dropCommands ++ ["north"])) machine
+       return $ decodeOutput output
+
+
 
 runCommand :: [Integer] -> [String] -> (Machine, String)
 runCommand mem inputs = ( machine, decodeOutput output )

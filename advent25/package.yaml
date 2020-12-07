@@ -58,3 +58,4 @@ executables:
     - text
     - containers
     - intcode
+    - mtl
