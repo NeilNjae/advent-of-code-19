@@ -31,7 +31,8 @@ runPreamble mem =
 
 
 encodeCommands :: [String] -> [Integer]
-encodeCommands cmds = map (fromIntegral . ord) $ concat $ map (++ "\n") cmds
+-- encodeCommands cmds = map (fromIntegral . ord) $ concat $ map (++ "\n") cmds
+encodeCommands = map (fromIntegral . ord) . concat . map (++ "\n")
 
 decodeOutput :: [Integer] -> String
 decodeOutput = map (chr . fromIntegral)
@@ -45,7 +46,6 @@ extractItems text = items
 powerList :: [a] -> [[a]]
 powerList [] = [[]]
 powerList (x:xs) = powerList xs ++ map (x:) (powerList xs) 
-
 
 passSecurity :: Machine -> [String] -> [String] -> String
 passSecurity machine instructions items = 
