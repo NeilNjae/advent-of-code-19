@@ -62,6 +62,7 @@ packages:
 - advent22
 - advent23
 - advent24
+- advent25
 
 
 # Dependency packages to be pulled from upstream that are not in the resolver.
