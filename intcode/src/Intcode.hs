@@ -58,11 +58,12 @@ runAll = do mem <- gets _memory
             ip <- gets _ip
             input <- ask
             iIndex <- gets _inputIndex
+            let opcode = (mem!ip) `mod` 100
             let acutalInputLength = length input
             let requiredInputLength = iIndex + 1
-            if (mem!ip == 99)
+            if (opcode == 99)
             then return Terminated
-            else    if (mem!ip == 3 && requiredInputLength > acutalInputLength)
+            else    if (opcode == 3 && requiredInputLength > acutalInputLength)
                     then return Blocked
                     else do runStep
                             runAll
@@ -88,6 +89,8 @@ fetchInput 3 modes =
        rb <- gets _rb
        inputIndex <- gets _inputIndex
        inputs <- ask 
+       -- let ii = trace ("Input, index " ++ show inputIndex ++ " : available " ++ show (length inputs)) inputIndex
+       -- let mem' = iInsert (ip + 1) (modes!!0) rb (inputs!!ii) mem
        let mem' = iInsert (ip + 1) (modes!!0) rb (inputs!!inputIndex) mem
        modify (\m -> m {_inputIndex = inputIndex + 1, _memory = mem'})
 fetchInput _ _ = return ()
